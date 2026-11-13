@@ -668,8 +668,11 @@ async function checkRiseFcAdmin() {
   riseFcIsAdmin = !!admin;
 
   updateRiseFcAdminUI();
-}
+    riseFcIsAdmin = !!admin;
 
+  updateRiseFcAdminUI();
+  renderRiseHistoryAdminTools();
+}
 
 // ========================================
 // 관리자 버튼 표시
@@ -1423,3 +1426,524 @@ if (topButton) {
 
   checkTopButton();
 }
+
+// ========================================
+// RISE FC HISTORY MANAGEMENT
+// ========================================
+
+const historyList = document.getElementById("history-list");
+const historyAdminTools = document.getElementById("history-admin-tools");
+
+let riseHistoryItems = [];
+
+
+// ========================================
+// 관리자 연혁 관리 버튼
+// ========================================
+
+function renderRiseHistoryAdminTools() {
+
+  if (!historyAdminTools) return;
+
+  historyAdminTools.innerHTML = "";
+
+  if (!riseFcIsAdmin) return;
+
+  historyAdminTools.innerHTML = `
+    <button
+      type="button"
+      id="history-write-toggle"
+      style="
+        background:#c9a646;
+        color:#111;
+        border:0;
+        padding:13px 24px;
+        font-weight:bold;
+        cursor:pointer;
+        margin:25px 0;
+      "
+    >
+      + 연혁 등록하기
+    </button>
+
+    <form id="history-write-form"
+      style="
+        display:none;
+        background:#151515;
+        border:1px solid #333;
+        padding:25px;
+        margin-bottom:30px;
+        text-align:left;
+      "
+    >
+
+      <label style="display:block;color:#c9a646;margin-bottom:8px;">
+        연혁 날짜
+      </label>
+
+      <input
+        type="date"
+        id="history-date"
+        required
+        style="
+          width:100%;
+          padding:13px;
+          margin-bottom:18px;
+          box-sizing:border-box;
+        "
+      >
+
+      <label style="display:block;color:#c9a646;margin-bottom:8px;">
+        연혁 제목
+      </label>
+
+      <input
+        type="text"
+        id="history-title"
+        placeholder="예: 검단 라이즈FC 창단"
+        maxlength="150"
+        required
+        style="
+          width:100%;
+          padding:13px;
+          margin-bottom:18px;
+          box-sizing:border-box;
+        "
+      >
+
+      <label style="display:block;color:#c9a646;margin-bottom:8px;">
+        상세 내용
+      </label>
+
+      <textarea
+        id="history-content"
+        placeholder="구단의 연혁 내용을 입력하세요."
+        required
+        rows="5"
+        style="
+          width:100%;
+          padding:13px;
+          margin-bottom:18px;
+          box-sizing:border-box;
+          resize:vertical;
+        "
+      ></textarea>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+
+        <button
+          type="submit"
+          id="history-submit"
+          style="
+            background:#c9a646;
+            color:#111;
+            border:0;
+            padding:12px 22px;
+            font-weight:bold;
+            cursor:pointer;
+          "
+        >
+          연혁 등록
+        </button>
+
+        <button
+          type="button"
+          id="history-write-cancel"
+          style="
+            background:#333;
+            color:white;
+            border:0;
+            padding:12px 22px;
+            cursor:pointer;
+          "
+        >
+          취소
+        </button>
+
+      </div>
+
+    </form>
+  `;
+
+  const form = document.getElementById("history-write-form");
+
+  document.getElementById("history-write-toggle")
+    .addEventListener("click", () => {
+      form.style.display =
+        form.style.display === "none" ? "block" : "none";
+    });
+
+  document.getElementById("history-write-cancel")
+    .addEventListener("click", () => {
+      form.reset();
+      form.style.display = "none";
+    });
+
+  form.addEventListener("submit", createRiseHistory);
+}
+
+
+// ========================================
+// 연혁 불러오기
+// ========================================
+
+async function loadRiseHistory() {
+
+  if (!historyList) return;
+
+  historyList.innerHTML = `
+    <div class="notice-loading">
+      구단 연혁을 불러오는 중입니다.
+    </div>
+  `;
+
+  const { data, error } = await supabaseClient
+    .from("rise_fc_history")
+    .select("*")
+    .order("event_date", { ascending: false });
+
+  if (error) {
+
+    console.error("연혁 조회 오류:", error);
+
+    historyList.innerHTML = `
+      <div class="notice-empty">
+        구단 연혁을 불러오지 못했습니다.
+      </div>
+    `;
+
+    return;
+  }
+
+  riseHistoryItems = data || [];
+
+  if (riseHistoryItems.length === 0) {
+
+    historyList.innerHTML = `
+      <div class="notice-empty">
+        아직 등록된 구단 연혁이 없습니다.
+      </div>
+    `;
+
+    return;
+  }
+
+  historyList.innerHTML = `
+    <div class="rise-history-list">
+
+      ${riseHistoryItems.map(item => {
+
+        const date = String(item.event_date || "");
+
+        const formattedDate = date
+          ? date.replace(/-/g, ".")
+          : "";
+
+        return `
+          <article style="
+            position:relative;
+            padding:25px;
+            margin:15px 0;
+            background:#151515;
+            border-left:3px solid #c9a646;
+            text-align:left;
+          ">
+
+            <div style="
+              color:#c9a646;
+              font-size:14px;
+              font-weight:bold;
+              margin-bottom:10px;
+            ">
+              ${riseEscape(formattedDate)}
+            </div>
+
+            <h3 style="
+              color:white;
+              font-size:21px;
+              margin-bottom:12px;
+            ">
+              ${riseEscape(item.title)}
+            </h3>
+
+            <p style="
+              color:#bbb;
+              font-size:14px;
+              line-height:1.8;
+              white-space:pre-wrap;
+            ">${riseEscape(item.content)}</p>
+
+            ${riseFcIsAdmin ? `
+              <div style="
+                display:flex;
+                gap:8px;
+                margin-top:20px;
+              ">
+
+                <button
+                  type="button"
+                  data-edit-history="${item.id}"
+                  style="
+                    padding:8px 15px;
+                    background:#c9a646;
+                    color:#111;
+                    border:0;
+                    cursor:pointer;
+                  "
+                >
+                  수정
+                </button>
+
+                <button
+                  type="button"
+                  data-delete-history="${item.id}"
+                  style="
+                    padding:8px 15px;
+                    background:#333;
+                    color:white;
+                    border:0;
+                    cursor:pointer;
+                  "
+                >
+                  삭제
+                </button>
+
+              </div>
+            ` : ""}
+
+          </article>
+        `;
+
+      }).join("")}
+
+    </div>
+  `;
+}
+
+
+// ========================================
+// 연혁 등록
+// ========================================
+
+async function createRiseHistory(event) {
+
+  event.preventDefault();
+
+  if (!riseFcIsAdmin) {
+    alert("관리자만 연혁을 등록할 수 있습니다.");
+    return;
+  }
+
+  const eventDate =
+    document.getElementById("history-date").value;
+
+  const title =
+    document.getElementById("history-title").value.trim();
+
+  const content =
+    document.getElementById("history-content").value.trim();
+
+  if (!eventDate || !title || !content) {
+    alert("날짜, 제목, 내용을 모두 입력해 주세요.");
+    return;
+  }
+
+  const submitButton =
+    document.getElementById("history-submit");
+
+  submitButton.disabled = true;
+  submitButton.textContent = "등록 중...";
+
+  try {
+
+    const { data: { user } } =
+      await supabaseClient.auth.getUser();
+
+    if (!user) {
+      throw new Error("로그인이 필요합니다.");
+    }
+
+    const { error } = await supabaseClient
+      .from("rise_fc_history")
+      .insert([{
+        event_date: eventDate,
+        title: title,
+        content: content,
+        created_by: user.id
+      }]);
+
+    if (error) throw error;
+
+    alert("구단 연혁이 등록되었습니다!");
+
+    document.getElementById("history-write-form").reset();
+
+    document.getElementById("history-write-form")
+      .style.display = "none";
+
+    await loadRiseHistory();
+
+  } catch (error) {
+
+    console.error("연혁 등록 오류:", error);
+
+    alert("연혁 등록 실패: " + error.message);
+
+  } finally {
+
+    submitButton.disabled = false;
+    submitButton.textContent = "연혁 등록";
+
+  }
+}
+
+
+// ========================================
+// 연혁 수정 및 삭제
+// ========================================
+
+if (historyList) {
+
+  historyList.addEventListener("click", async event => {
+
+    // 연혁 수정
+    const editButton =
+      event.target.closest("[data-edit-history]");
+
+    if (editButton) {
+
+      if (!riseFcIsAdmin) {
+        alert("관리자만 수정할 수 있습니다.");
+        return;
+      }
+
+      const item = riseHistoryItems.find(
+        history => String(history.id) === editButton.dataset.editHistory
+      );
+
+      if (!item) return;
+
+      const newDate = prompt(
+        "연혁 날짜를 입력하세요. (YYYY-MM-DD)",
+        item.event_date
+      );
+
+      if (newDate === null) return;
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+        alert("날짜 형식이 올바르지 않습니다.");
+        return;
+      }
+
+      const newTitle = prompt(
+        "연혁 제목을 수정하세요.",
+        item.title
+      );
+
+      if (newTitle === null) return;
+
+      const newContent = prompt(
+        "연혁 내용을 수정하세요.",
+        item.content
+      );
+
+      if (newContent === null) return;
+
+      if (!newTitle.trim() || !newContent.trim()) {
+        alert("제목과 내용을 입력해 주세요.");
+        return;
+      }
+
+      const { error } = await supabaseClient
+        .from("rise_fc_history")
+        .update({
+          event_date: newDate,
+          title: newTitle.trim(),
+          content: newContent.trim()
+        })
+        .eq("id", item.id);
+
+      if (error) {
+        alert("연혁 수정 실패: " + error.message);
+        return;
+      }
+
+      alert("연혁이 수정되었습니다.");
+
+      await loadRiseHistory();
+
+      return;
+    }
+
+
+    // 연혁 삭제
+    const deleteButton =
+      event.target.closest("[data-delete-history]");
+
+    if (deleteButton) {
+
+      if (!riseFcIsAdmin) {
+        alert("관리자만 삭제할 수 있습니다.");
+        return;
+      }
+
+      const id = deleteButton.dataset.deleteHistory;
+
+      if (!confirm("이 구단 연혁을 삭제하시겠습니까?")) {
+        return;
+      }
+
+      const { error } = await supabaseClient
+        .from("rise_fc_history")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        alert("연혁 삭제 실패: " + error.message);
+        return;
+      }
+
+      alert("연혁이 삭제되었습니다.");
+
+      await loadRiseHistory();
+
+    }
+
+  });
+
+}
+
+
+// ========================================
+// 연혁 최초 실행
+// ========================================
+
+async function initializeRiseHistory() {
+
+  await checkRiseFcAdmin();
+
+  renderRiseHistoryAdminTools();
+
+  await loadRiseHistory();
+
+}
+
+initializeRiseHistory();
+
+
+// 로그인 / 로그아웃 시 관리자 버튼 갱신
+supabaseClient.auth.onAuthStateChange(() => {
+
+  setTimeout(async () => {
+
+    await checkRiseFcAdmin();
+
+    renderRiseHistoryAdminTools();
+
+    await loadRiseHistory();
+
+  }, 0);
+
+});
+
+console.log("RISE FC HISTORY MANAGEMENT 연결 완료!");
