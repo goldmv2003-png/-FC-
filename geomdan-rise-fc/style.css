@@ -34,10 +34,11 @@ a {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #ffffff18;
-  position: absolute;
-  top: 0;
-  width: 100%;
-  z-index: 10;
+  position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+z-index: 9999;
 }
 
 .logo {
@@ -1292,4 +1293,870 @@ footer strong { color: white; }
     height: 100% !important;
     object-fit: cover;
     object-position: center top;
+}
+
+/* RISE FC CONTACT LINKS */
+.contact-links {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 30px;
+  margin-top: 35px;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.contact-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: white;
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.contact-links a:hover {
+  opacity: 0.65;
+  transform: translateY(-2px);
+}
+
+.contact-links svg {
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .contact-links {
+    justify-content: flex-start;
+    gap: 20px;
+    padding: 5px 0 12px;
+  }
+
+  .contact-links a {
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .contact-links svg {
+    width: 21px;
+    height: 21px;
+  }
+}
+
+/* ========================================
+   RISE FC NOTICE & GALLERY
+======================================== */
+
+.rise-notices {
+  background: #0b0b0b;
+}
+
+.rise-gallery {
+  background: #111016;
+}
+
+/* 공지사항 관리자 버튼 */
+
+.notice-admin-tools,
+.gallery-admin-tools {
+  display: flex;
+  justify-content: flex-end;
+  margin: 30px 0;
+}
+
+.notice-write-btn {
+  background: #C9A646;
+  color: #080808;
+  border: none;
+  padding: 14px 25px;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: .3s;
+}
+
+.notice-write-btn:hover {
+  background: white;
+}
+
+/* 공지사항 작성 폼 */
+
+.notice-write-form {
+  display: none;
+  background: #171717;
+  border: 1px solid #C9A646;
+  padding: 25px;
+  margin: 25px 0;
+}
+
+.notice-write-form.show {
+  display: block;
+}
+
+.notice-write-form input,
+.notice-write-form textarea {
+  width: 100%;
+  background: #080808;
+  border: 1px solid #444;
+  color: white;
+  padding: 15px;
+  margin-bottom: 15px;
+  font-family: inherit;
+  outline: none;
+}
+
+.notice-write-form textarea {
+  min-height: 180px;
+  resize: vertical;
+  line-height: 1.8;
+}
+
+.notice-write-form input:focus,
+.notice-write-form textarea:focus {
+  border-color: #C9A646;
+}
+
+.notice-form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.notice-form-actions button {
+  padding: 13px 22px;
+  cursor: pointer;
+  font-weight: 800;
+  border: none;
+}
+
+.notice-submit {
+  background: #C9A646;
+  color: #080808;
+}
+
+.notice-cancel {
+  background: #333;
+  color: white;
+}
+
+/* 공지사항 목록 */
+
+.notice-list {
+  margin-top: 40px;
+  border-top: 1px solid #ffffff30;
+}
+
+.notice-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 25px 15px;
+  border-bottom: 1px solid #ffffff20;
+  transition: .3s;
+}
+
+.notice-item:hover {
+  background: #ffffff08;
+}
+
+.notice-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.notice-item-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.notice-new {
+  display: inline-block;
+  background: #d92332;
+  color: white;
+  padding: 3px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.notice-date {
+  color: #777;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.notice-content {
+  display: none;
+  padding: 20px;
+  margin-top: 15px;
+  background: #171717;
+  color: #bbb;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.notice-item.open .notice-content {
+  display: block;
+}
+
+.notice-item-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.notice-delete-btn {
+  background: transparent;
+  color: #e66;
+  border: 1px solid #e66565;
+  padding: 8px 12px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.notice-loading,
+.notice-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: #888;
+  border-bottom: 1px solid #ffffff20;
+}
+
+/* 사진 추가 버튼 */
+
+.gallery-plus-btn {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  background: #C9A646;
+  color: #080808;
+  border: none;
+  font-size: 35px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  transition: .3s;
+}
+
+.gallery-plus-btn:hover {
+  background: white;
+  transform: rotate(90deg);
+}
+
+/* 사진 갤러리 */
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 35px;
+}
+
+.gallery-item {
+  position: relative;
+  overflow: hidden;
+  background: #171717;
+  border: 1px solid #ffffff15;
+  aspect-ratio: 4 / 3;
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+  transition: .4s;
+}
+
+.gallery-item:hover img {
+  transform: scale(1.06);
+}
+
+.gallery-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 30px 15px 15px;
+  background: linear-gradient(transparent, #000d);
+  color: white;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.gallery-delete-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #c92332;
+  color: white;
+  border: none;
+  padding: 9px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  z-index: 2;
+}
+
+/* 사진 크게 보기 */
+
+.gallery-viewer {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: rgba(0,0,0,.95);
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+}
+
+.gallery-viewer.show {
+  display: flex;
+}
+
+.gallery-viewer img {
+  max-width: 95%;
+  max-height: 85vh;
+  object-fit: contain;
+}
+
+#gallery-viewer-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  color: white;
+  background: transparent;
+  border: none;
+  font-size: 45px;
+  cursor: pointer;
+}
+
+/* 모바일 */
+
+@media(max-width: 768px) {
+
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .gallery-item {
+    aspect-ratio: 1 / 1;
+  }
+
+  .notice-item {
+    align-items: flex-start;
+    padding: 20px 8px;
+  }
+
+  .notice-item-title {
+    font-size: 14px;
+  }
+
+  .notice-write-form {
+    padding: 15px;
+  }
+
+  .gallery-plus-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 30px;
+  }
+
+}
+
+@media(max-width: 400px) {
+
+  .gallery-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+/* NOTICE ADMIN LAYOUT */
+.notice-admin-tools {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 15px;
+}
+
+.notice-admin-tools .notice-write-form {
+  width: 100%;
+}
+
+.notice-write-form.show {
+  display: block;
+}
+/* TOP 버튼 */
+#topButton {
+  position: fixed;
+  right: 25px;
+  bottom: 25px;
+  z-index: 10000;
+
+  width: 52px;
+  height: 52px;
+  border: none;
+  border-radius: 50%;
+
+  background: #d71920;
+  color: #fff;
+
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(12px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+}
+
+#topButton.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+#topButton:hover {
+  background: #a90f16;
+  transform: translateY(-4px);
+}
+
+@media (max-width: 700px) {
+  #topButton {
+    width: 46px;
+    height: 46px;
+    right: 16px;
+    bottom: 18px;
+  }
+}
+/* 사진 갤러리 디자인 개선 */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 18px;
+  margin-top: 30px;
+}
+
+.gallery-item {
+  overflow: hidden;
+  border-radius: 12px;
+  background: #151515;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.25s ease;
+}
+
+.gallery-item:hover {
+  transform: translateY(-4px);
+}
+
+.gallery-item img {
+  display: block;
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  border-radius: 0;
+}
+
+.gallery-caption {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #ddd;
+}
+
+@media (max-width: 600px) {
+  .gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .gallery-item img {
+    height: 130px;
+  }
+
+  .gallery-caption {
+    padding: 9px;
+    font-size: 12px;
+  }
+}
+
+/* ========================================
+   RISE FC GALLERY DESIGN
+======================================== */
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 1100px;
+  margin: 35px auto 0;
+}
+
+.gallery-item {
+  position: relative;
+  overflow: hidden;
+  background: #151515;
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 10px;
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+
+.gallery-item:hover {
+  transform: translateY(-4px);
+  border-color: rgba(201,166,70,0.55);
+}
+
+.gallery-image-wrap {
+  position: relative;
+  width: 100%;
+  height: 175px;
+  overflow: hidden;
+  background: #222;
+}
+
+.gallery-image-wrap img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform 0.35s ease;
+}
+
+.gallery-item:hover .gallery-image-wrap img {
+  transform: scale(1.04);
+}
+
+.gallery-info {
+  padding: 11px 13px 12px;
+}
+
+.gallery-caption {
+  color: #eee;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 7px;
+  word-break: break-word;
+}
+
+.gallery-date {
+  color: #888;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+}
+
+.gallery-delete-btn {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 5;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 5px;
+  background: rgba(180, 30, 30, 0.9);
+  color: white;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.gallery-delete-btn:hover {
+  background: #e32626;
+}
+
+@media (max-width: 900px) {
+  .gallery-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .gallery-image-wrap {
+    height: 125px;
+  }
+
+  .gallery-info {
+    padding: 9px;
+  }
+
+  .gallery-caption {
+    font-size: 12px;
+  }
+}
+
+/* ========================================
+   RISE FC FINAL FIX
+======================================== */
+
+/* 1. 상단 메뉴 불투명 검정색 */
+.header {
+  background: #080808 !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid #C9A646 !important;
+}
+
+/* 2. 사진 날짜 잘림 수정 */
+.gallery-item {
+  aspect-ratio: auto !important;
+  height: auto !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.gallery-image-wrap {
+  flex-shrink: 0;
+  height: 175px;
+}
+
+.gallery-info {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: auto;
+  min-height: 55px;
+  padding: 12px 13px 14px;
+  overflow: visible;
+}
+
+.gallery-caption {
+  position: static !important;
+  display: block;
+  width: 100%;
+  padding: 0 !important;
+  margin: 0 0 7px;
+  background: none !important;
+  color: #eee;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;
+}
+
+.gallery-date {
+  display: block;
+  position: static;
+  color: #aaa;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow: visible;
+}
+
+@media (max-width: 600px) {
+  .gallery-image-wrap {
+    height: 125px;
+  }
+
+  .gallery-info {
+    padding: 10px !important;
+  }
+
+  .gallery-caption {
+    font-size: 12px;
+  }
+
+  .gallery-date {
+    font-size: 11px;
+  }
+}
+
+/* 3. TOP 버튼 표시 */
+#topButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #C9A646;
+  color: #080808;
+  border: 1px solid #C9A646;
+  z-index: 100000;
+  cursor: pointer;
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(12px);
+  transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+}
+
+#topButton.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+#topButton:hover {
+  background: #fff !important;
+  color: #080808 !important;
+}
+/* 상단 고정 메뉴 불투명 처리 */
+.header {
+  background: #080808 !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid #C9A646 !important;
+}
+/* 갤러리 사진 날짜 잘림 방지 */
+.gallery-item {
+  height: auto !important;
+  aspect-ratio: auto !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.gallery-image-wrap {
+  flex-shrink: 0;
+}
+
+.gallery-info {
+  position: relative !important;
+  width: 100%;
+  height: auto !important;
+  min-height: 55px;
+  padding: 12px 13px 14px !important;
+  overflow: visible !important;
+}
+
+.gallery-caption {
+  position: static !important;
+  display: block;
+  width: 100%;
+  padding: 0 !important;
+  margin: 0 0 7px;
+  background: none !important;
+  color: #eee;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;
+}
+
+.gallery-date {
+  display: block;
+  position: static !important;
+  color: #aaa;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow: visible;
+}
+
+@media (max-width: 600px) {
+  .gallery-info {
+    padding: 10px !important;
+  }
+
+  .gallery-caption {
+    font-size: 12px;
+  }
+
+  .gallery-date {
+    font-size: 11px;
+  }
+}
+/* TOP 버튼 강제 표시 설정 */
+#topButton {
+  position: fixed !important;
+  right: 30px !important;
+  bottom: 30px !important;
+  width: 55px !important;
+  height: 55px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  background: #C9A646 !important;
+  color: #080808 !important;
+  border: none !important;
+  border-radius: 50% !important;
+
+  font-size: 13px !important;
+  font-weight: 900 !important;
+
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateY(15px) !important;
+
+  z-index: 999999 !important;
+  cursor: pointer !important;
+
+  transition: all 0.3s ease !important;
+}
+
+#topButton.show {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+}
+
+@media (max-width: 600px) {
+  #topButton {
+    right: 18px !important;
+    bottom: 20px !important;
+  }
+}
+/* 홈페이지 오른쪽 하단 고정 TOP 버튼 */
+#topButton {
+  position: fixed !important;
+  right: 30px !important;
+  bottom: 30px !important;
+
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+
+  width: 55px;
+  height: 55px;
+
+  background: #C9A646 !important;
+  color: #080808 !important;
+
+  border: none;
+  border-radius: 50%;
+
+  font-size: 13px;
+  font-weight: 900;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+
+  z-index: 999999 !important;
+  cursor: pointer;
+}
+
+#topButton:hover {
+  background: #fff !important;
+}
+
+@media (max-width: 600px) {
+  #topButton {
+    right: 18px !important;
+    bottom: 20px !important;
+  }
 }
