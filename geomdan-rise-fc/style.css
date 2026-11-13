@@ -2247,3 +2247,149 @@ footer strong { color: white; }
   }
 
 }
+
+/* =====================================
+   RISE FC MOBILE HAMBURGER MENU
+   PC DESIGN UNCHANGED
+===================================== */
+
+.mobile-menu-toggle {
+  display: none;
+}
+
+.mobile-menu-panel {
+  display: contents;
+}
+
+@media screen and (max-width: 768px) {
+
+  .header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    box-sizing: border-box;
+  }
+
+  .header .logo {
+    font-size: 19px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+  }
+
+  .header .logo img {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+  }
+
+  /* 햄버거 버튼 */
+  .mobile-menu-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    width: 42px;
+    height: 42px;
+    padding: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 10002;
+  }
+
+  .mobile-menu-toggle span {
+    display: block;
+    width: 25px;
+    height: 2px;
+    background: #c9a044;
+    border-radius: 2px;
+    transition: 0.25s;
+  }
+
+  /* 메뉴 닫힌 상태 */
+  .mobile-menu-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    padding: 18px 20px;
+    box-sizing: border-box;
+    background: #111;
+    border-top: 1px solid #c9a044;
+    z-index: 10001;
+  }
+
+  /* 메뉴 열린 상태 */
+  .header.mobile-menu-open .mobile-menu-panel {
+    display: block;
+  }
+
+  .header .mobile-menu-panel nav {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .header .mobile-menu-panel nav a {
+    display: block;
+    padding: 14px 5px;
+    color: white;
+    font-size: 14px;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(201,160,68,0.25);
+  }
+
+  .header .mobile-menu-panel .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 16px;
+  }
+
+  /* 햄버거가 X로 변환 */
+  .header.mobile-menu-open .mobile-menu-toggle span:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+
+  .header.mobile-menu-open .mobile-menu-toggle span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .header.mobile-menu-open .mobile-menu-toggle span:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+
+  /* 선수단 2열 */
+  #player-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    width: 100% !important;
+    padding: 0 12px !important;
+    box-sizing: border-box;
+  }
+
+  #player-grid > * {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box;
+  }
+
+   #player-grid img {
+    width: 100% !important;
+    height: 150px !important;
+    max-width: 100%;
+    object-fit: cover;
+  }
+}

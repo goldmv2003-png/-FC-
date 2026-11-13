@@ -135,14 +135,34 @@
       RISE<span>FC</span>
     </a>
 
-    
-<nav>
-  <a href="#about">구단소개</a>
-  <a href="#squad">선수단</a>
-  <a href="#matches">경기일정</a>
-  <a href="#notices">공지사항</a>
-  <a href="#gallery">사진</a>
-</nav>
+    <a href="#" class="logo">
+      <img src="images/라이즈FC 엠블럼.png" alt="라이즈FC 엠블럼">
+      RISE<span>FC</span>
+    </a>
+
+    <!-- 모바일 햄버거 버튼 -->
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle"
+            type="button" aria-label="메뉴 열기" aria-expanded="false">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <div class="mobile-menu-panel" id="mobile-menu-panel">
+      <nav>
+        <a href="#about">구단소개</a>
+        <a href="#squad">선수단</a>
+        <a href="#matches">경기일정</a>
+        <a href="#notices">공지사항</a>
+        <a href="#gallery">사진</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="login-btn" id="login-open">로그인</button>
+        <button class="signup-btn" id="signup-open">회원가입</button>
+        <a href="#contact" class="join-btn">선수 모집 ↗</a>
+      </div>
+    </div>
 
     <div class="header-actions">
       <button class="login-btn" id="login-open">로그인</button>
@@ -615,6 +635,31 @@
   <!-- JAVASCRIPT -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
+
+<script>
+  const mobileToggle = document.getElementById("mobile-menu-toggle");
+  const mobileHeader = document.querySelector(".header");
+
+  if (mobileToggle && mobileHeader) {
+    mobileToggle.addEventListener("click", function () {
+      const isOpen = mobileHeader.classList.toggle("mobile-menu-open");
+
+      mobileToggle.setAttribute("aria-expanded", isOpen);
+      mobileToggle.setAttribute(
+        "aria-label",
+        isOpen ? "메뉴 닫기" : "메뉴 열기"
+      );
+    });
+
+    document.querySelectorAll(".mobile-menu-panel nav a").forEach(link => {
+      link.addEventListener("click", function () {
+        mobileHeader.classList.remove("mobile-menu-open");
+        mobileToggle.setAttribute("aria-expanded", "false");
+        mobileToggle.setAttribute("aria-label", "메뉴 열기");
+      });
+    });
+  }
+</script>
 
 </div>
 <button
