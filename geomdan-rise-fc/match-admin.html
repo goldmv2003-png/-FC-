@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RISE FC MATCH MANAGEMENT</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#080808;color:#fff;font-family:Arial,'Malgun Gothic',sans-serif;padding:25px}
@@ -55,7 +54,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 </style>
 </head>
-
 <body>
 <div class="container">
 
@@ -71,12 +69,27 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 <div class="panel">
   <h2 id="form-title">경기 일정 등록</h2>
-
   <div class="form-grid">
     <div>
-      <label>상대 팀</label>
-      <input id="opponent" placeholder="예: FC UNITED">
-    </div>
+  <label>상대 팀</label>
+
+  <input id="opponent" placeholder="예: FC UNITED">
+
+  <div class="actions" style="margin-top:5px">
+    <button
+      type="button"
+      class="gold"
+      id="generate-opponent-logo"
+    >
+      ⚽ AI 상대팀 엠블럼 생성
+    </button>
+  </div>
+
+  <div
+    id="opponent-logo-preview"
+    class="opponent-logo-preview"
+  ></div>
+</div>
     <div>
       <label>경기 날짜</label>
       <input type="date" id="match-date">
@@ -90,13 +103,15 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <input id="venue" placeholder="예: 검단 축구장">
     </div>
   </div>
-
   <div id="message"></div>
 </div>
 
 <div class="panel">
   <h2>02 / PLAYER ATTENDANCE</h2>
-  <p style="margin-bottom:18px">이번 경기 참석 선수를 선택하세요.</p>
+  <p style="margin-bottom:18px">카카오톡 참석 투표 후, 관리자가 실제 참석 확정 선수를 선택하세요. 일정만 먼저 저장해도 됩니다.</p>
+  <div class="actions" style="margin-bottom:15px">
+    <button class="gray" id="copy-kakao">카카오톡 투표 안내문 복사</button>
+  </div>
   <div class="actions" style="margin-bottom:15px">
     <button class="gold" id="select-all">전체 참석</button>
     <button class="gray" id="clear-all">전체 해제</button>
@@ -109,14 +124,32 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 <div class="panel">
   <h2>03 / AI FORMATION RECOMMENDATION</h2>
-  <p style="margin-bottom:15px">참석 선수의 등록 포지션을 바탕으로 자동 배치합니다.</p>
+  <p style="margin-bottom:15px">참석 확정 후 쿼터를 선택해 해당 쿼터의 포메이션을 추천하고 선수를 조정하세요. 쿼터별 명단은 한 경기 안에 함께 저장됩니다.</p>
+
+  <label>구성할 쿼터 선택</label>
+  <select id="quarter-select">
+    <option value="1">1쿼터</option>
+    <option value="2">2쿼터</option>
+    <option value="3">3쿼터</option>
+    <option value="4">4쿼터</option>
+  </select>
 
   <label>포메이션 선택</label>
   <select id="formation">
+    <option value="4-2-1-3">4-2-1-3 (기본)</option>
+    <option value="4-2-3-1">4-2-3-1</option>
     <option value="4-3-3">4-3-3</option>
     <option value="4-4-2">4-4-2</option>
-    <option value="4-2-3-1">4-2-3-1</option>
+    <option value="4-1-4-1">4-1-4-1</option>
+    <option value="4-1-2-3">4-1-2-3</option>
+    <option value="4-3-1-2">4-3-1-2</option>
+    <option value="4-3-2-1">4-3-2-1</option>
+    <option value="4-5-1">4-5-1</option>
     <option value="3-5-2">3-5-2</option>
+    <option value="3-4-3">3-4-3</option>
+    <option value="3-4-2-1">3-4-2-1</option>
+    <option value="5-3-2">5-3-2</option>
+    <option value="5-4-1">5-4-1</option>
   </select>
 
   <button class="gold" id="recommend">⚽ 포메이션 및 선발 추천</button>
@@ -124,15 +157,15 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <div id="lineup-area" style="margin-top:25px">
     <p class="empty">참석 선수를 선택한 후 추천 버튼을 눌러주세요.</p>
   </div>
-
   <div id="bench-area" style="margin-top:20px"></div>
+  <div id="play-count-area" style="margin-top:20px"></div>
 </div>
 
 <div class="panel">
   <h2>04 / COACH APPROVAL</h2>
   <p>선수와 포지션을 최종 확인한 뒤 저장하거나 홈페이지에 공개하세요.</p>
   <div class="actions">
-    <button class="gray" id="save-draft">임시 저장</button>
+    <button class="gray" id="save-draft">경기 일정 / 임시 저장</button>
     <button class="gold" id="publish">감독 승인 및 홈페이지 공개</button>
   </div>
 </div>
@@ -168,20 +201,171 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <script>
 const SUPABASE_URL = "https://gqsecxgzegyzzwlmfavr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_8BKTlYkIEEwNS-dDauIfFg_3FSdkcDJ";
-
-const db = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
-
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
 let currentUser = null;
 let players = [];
 let selectedIds = new Set();
-let lineup = [];
+let quarterLineups = {1:[],2:[],3:[],4:[]};
+let quarterFormations = {
+  1:"4-2-1-3",2:"4-2-1-3",3:"4-2-1-3",4:"4-2-1-3"
+};
 let editingId = null;
 let editingMatch = null;
+let generatedOpponentLogoUrl = "";
+let generatedOpponentName = "";
 
-const $ = id => document.getElementById(id);
+function renderOpponentLogoPreview() {
+  const preview = $("opponent-logo-preview");
+
+  if (!preview) return;
+
+  if (!generatedOpponentLogoUrl) {
+    preview.innerHTML = "";
+    return;
+  }
+
+  preview.innerHTML = `
+    <img
+      src="${safe(generatedOpponentLogoUrl)}"
+      alt="상대팀 엠블럼"
+    >
+    <p>
+      상대팀 엠블럼 준비 완료<br>
+      경기 저장 시 자동으로 등록됩니다.
+    </p>
+  `;
+}
+
+// ========================================
+// AI 상대팀 엠블럼 생성
+// ========================================
+
+$("generate-opponent-logo").onclick = async () => {
+
+  const opponent = $("opponent").value.trim();
+
+  if (!opponent) {
+    alert("먼저 상대팀 이름을 입력하세요.");
+    $("opponent").focus();
+    return;
+  }
+
+  const button = $("generate-opponent-logo");
+
+  button.disabled = true;
+  button.textContent = "엠블럼 생성 중...";
+
+  try {
+
+    // 1. 관리자 로그인 세션 확인
+    const { data: sessionData, error: sessionError } =
+      await db.auth.getSession();
+
+    if (sessionError) throw sessionError;
+
+    const session = sessionData.session;
+
+    if (!session?.access_token) {
+      throw new Error("관리자 로그인이 필요합니다.");
+    }
+
+    // 2. 기존 상대팀 엠블럼 확인
+    const { data: existing, error: searchError } = await db
+      .from("matches")
+      .select("opponent_logo_url")
+      .eq("opponent", opponent)
+      .not("opponent_logo_url", "is", null)
+      .limit(1);
+
+    if (searchError) throw searchError;
+
+    if (existing?.length && existing[0].opponent_logo_url) {
+
+      generatedOpponentLogoUrl =
+        existing[0].opponent_logo_url;
+
+      generatedOpponentName = opponent;
+
+      renderOpponentLogoPreview();
+
+      $("message").textContent =
+        "기존 상대팀 엠블럼을 불러왔습니다.";
+
+      return;
+    }
+
+    // 3. Supabase Edge Function 호출
+    $("message").textContent =
+      "AI가 상대팀 엠블럼을 제작하고 있습니다.";
+
+    const { data, error } = await db.functions.invoke(
+      "generate-opponent-logo",
+      {
+        body: {
+          opponent: opponent
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      }
+    );
+
+    if (error) {
+      throw new Error(
+        error.message || "Edge Function 호출에 실패했습니다."
+      );
+    }
+
+    // 4. 생성 결과 확인
+    if (!data?.success || !data?.logo_url) {
+      throw new Error(
+        data?.error || "엠블럼 생성에 실패했습니다."
+      );
+    }
+
+    // 5. 생성된 엠블럼 저장
+    generatedOpponentLogoUrl = data.logo_url;
+    generatedOpponentName = opponent;
+
+    // 6. 미리보기 출력
+    renderOpponentLogoPreview();
+
+    $("message").textContent =
+      opponent + " 엠블럼 생성 완료! 경기 저장 시 자동 등록됩니다.";
+
+  } catch (error) {
+
+    console.error("AI 엠블럼 생성 오류:", error);
+
+    $("message").textContent =
+      "엠블럼 생성 실패: " + error.message;
+
+    alert("엠블럼 생성 실패:\n" + error.message);
+
+  } finally {
+
+    button.disabled = false;
+    button.textContent = "⚽ AI 상대팀 엠블럼 생성";
+
+  }
+
+};
+
+
+// 상대팀 이름 변경 시 기존 엠블럼 초기화
+$("opponent").addEventListener("input", () => {
+
+  if ($("opponent").value.trim() !== generatedOpponentName) {
+
+    generatedOpponentLogoUrl = "";
+    generatedOpponentName = "";
+
+    renderOpponentLogoPreview();
+
+  }
+
+});
 
 function safe(value){
   return String(value ?? "").replace(/[&<>"']/g,c=>({
@@ -200,8 +384,7 @@ async function checkAdmin(){
 
   currentUser = data.user;
 
-  const {data:admin,error:adminError} = await db
-    .from("rise_fc_admins")
+  const {data:admin,error:adminError} = await db.from("rise_fc_admins")
     .select("user_id")
     .eq("user_id",currentUser.id)
     .maybeSingle();
@@ -217,8 +400,10 @@ async function checkAdmin(){
 
 // 선수 목록 불러오기
 async function loadPlayers(){
-  const {data,error} = await db
-    .from("players")
+  $("player-grid").innerHTML =
+    '<p class="empty">선수 목록 불러오는 중...</p>';
+
+  const {data,error} = await db.from("players")
     .select("id,number,name,position")
     .order("number",{ascending:true});
 
@@ -241,7 +426,7 @@ function renderPlayers(){
   $("player-grid").innerHTML = players.map(p=>`
     <label class="player-check">
       <input type="checkbox" data-player="${safe(p.id)}"
-        ${selectedIds.has(String(p.id)) ? "checked" : ""}>
+        ${selectedIds.has(String(p.id))?"checked":""}>
       <span>${safe(p.number)}번 ${safe(p.name)}</span>
       <small>${safe(p.position)}</small>
     </label>
@@ -249,7 +434,7 @@ function renderPlayers(){
 
   document.querySelectorAll("[data-player]").forEach(input=>{
     input.addEventListener("change",()=>{
-      const id = String(input.dataset.player);
+      const id=String(input.dataset.player);
       if(input.checked) selectedIds.add(id);
       else selectedIds.delete(id);
       updateAttendance();
@@ -261,82 +446,148 @@ function renderPlayers(){
 
 function updateAttendance(){
   $("attendance-count").textContent =
-    "참석 선수 " + selectedIds.size + "명 / 전체 " + players.length + "명";
+    `참석 확정 선수 ${selectedIds.size}명 / 전체 ${players.length}명`;
 }
 
-$("select-all").onclick = ()=>{
-  selectedIds = new Set(players.map(p=>String(p.id)));
+$("select-all").onclick=()=>{
+  selectedIds=new Set(players.map(p=>String(p.id)));
   renderPlayers();
 };
 
-$("clear-all").onclick = ()=>{
+$("clear-all").onclick=()=>{
   selectedIds.clear();
   renderPlayers();
 };
 
-// 포메이션 구성
+// 포메이션별 포지션 슬롯
 function getSlots(formation){
-  const configs = {
-    "4-3-3": {GK:1,DF:4,MF:3,FW:3},
-    "4-4-2": {GK:1,DF:4,MF:4,FW:2},
-    "4-2-3-1":{GK:1,DF:4,MF:5,FW:1},
-    "3-5-2": {GK:1,DF:3,MF:5,FW:2}
+  const configs={
+    "4-2-1-3":{GK:1,DF:4,DM:2,AM:1,FW:3},
+    "4-2-3-1":{GK:1,DF:4,DM:2,AM:3,FW:1},
+    "4-3-3":{GK:1,DF:4,MF:3,FW:3},
+    "4-4-2":{GK:1,DF:4,MF:4,FW:2},
+    "4-1-4-1":{GK:1,DF:4,DM:1,MF:4,FW:1},
+    "4-1-2-3":{GK:1,DF:4,DM:1,MF:2,FW:3},
+    "4-3-1-2":{GK:1,DF:4,MF:3,AM:1,FW:2},
+    "4-3-2-1":{GK:1,DF:4,MF:3,AM:2,FW:1},
+    "4-5-1":{GK:1,DF:4,MF:5,FW:1},
+    "3-5-2":{GK:1,DF:3,MF:5,FW:2},
+    "3-4-3":{GK:1,DF:3,MF:4,FW:3},
+    "3-4-2-1":{GK:1,DF:3,MF:4,AM:2,FW:1},
+    "5-3-2":{GK:1,DF:5,MF:3,FW:2},
+    "5-4-1":{GK:1,DF:5,MF:4,FW:1}
   };
 
-  const result = [];
-  const config = configs[formation];
+  const config=configs[formation]||configs["4-2-1-3"];
+  const result=[];
 
-  ["GK","DF","MF","FW"].forEach(pos=>{
-    for(let i=1;i<=config[pos];i++){
-      result.push({
-        position:pos,
-        label:pos + " " + i
-      });
+  Object.entries(config).forEach(([position,count])=>{
+    for(let i=1;i<=count;i++){
+      result.push({position,label:position+" "+i});
     }
   });
 
   return result;
 }
 
-function recommendLineup(){
-  const attendees = players.filter(p=>selectedIds.has(String(p.id)));
+function getActiveQuarter(){
+  return Number($("quarter-select").value||1);
+}
 
-  if(attendees.length < 11){
-    alert("선발 11명을 구성하려면 참석 선수가 최소 11명 필요합니다. 현재 " + attendees.length + "명입니다.");
+function getCurrentLineup(){
+  return quarterLineups[getActiveQuarter()]||[];
+}
+
+// 선발 추천
+function recommendLineup(){
+  const attendees=players.filter(p=>selectedIds.has(String(p.id)));
+
+  if(attendees.length<11){
+    alert("선발 11명을 구성하려면 참석 확정 선수가 최소 11명 필요합니다. 현재 "+attendees.length+"명입니다.");
     return;
   }
 
-  const formation = $("formation").value;
-  const slots = getSlots(formation);
-  const remaining = [...attendees];
+  const q=getActiveQuarter();
+  const formation=$("formation").value;
+  quarterFormations[q]=formation;
 
-  lineup = slots.map(slot=>{
-    let index = remaining.findIndex(p=>p.position===slot.position);
+  const slots=getSlots(formation);
+  const remaining=[...attendees];
 
-    if(index < 0) index = 0;
+  const usage={};
 
-    const player = remaining.splice(index,1)[0];
-
-    return {
-      player_id:String(player.id),
-      position:slot.position,
-      slot:slot.label
-    };
+  Object.values(quarterLineups).forEach(rows=>{
+    rows.forEach(row=>{
+      const id=String(row.player_id);
+      usage[id]=(usage[id]||0)+1;
+    });
   });
 
+  const chosen=[];
+
+  slots.forEach(slot=>{
+    let candidates=remaining.filter(p=>p.position===slot.position);
+
+    if(!candidates.length){
+      const alternatives={
+        DM:["MF","CM","DM"],
+        AM:["MF","FW","AM"],
+        MF:["DM","AM","MF"],
+        FW:["FW","AM"],
+        DF:["DF"],
+        GK:["GK"]
+      };
+
+      const allowed=alternatives[slot.position]||[slot.position];
+      candidates=remaining.filter(p=>allowed.includes(p.position));
+    }
+
+    if(!candidates.length) candidates=remaining;
+
+    candidates.sort((a,b)=>
+      (usage[String(a.id)]||0)-(usage[String(b.id)]||0)
+    );
+
+    const player=candidates[0];
+
+    if(player){
+      const index=remaining.findIndex(p=>String(p.id)===String(player.id));
+      remaining.splice(index,1);
+
+      chosen.push({
+        player_id:String(player.id),
+        position:slot.position,
+        slot:slot.label,
+        quarter:q,
+        formation:formation
+      });
+    }
+  });
+
+  quarterLineups[q]=chosen;
   renderLineup();
 }
 
-$("recommend").onclick = recommendLineup;
+$("recommend").onclick=recommendLineup;
 
-// 선발 선수 직접 수정
+// 쿼터별 선발 명단 표시
 function renderLineup(){
-  if(!lineup.length) return;
+  const q=getActiveQuarter();
+  const lineup=quarterLineups[q]||[];
+  const attendees=players.filter(p=>selectedIds.has(String(p.id)));
 
-  const attendees = players.filter(p=>selectedIds.has(String(p.id)));
+  $("formation").value=quarterFormations[q]||"4-2-1-3";
 
-  $("lineup-area").innerHTML = `
-    <h3>STARTING LINEUP · 선발 ${lineup.length}명</h3>
+  if(!lineup.length){
+    $("lineup-area").innerHTML=
+      '<p class="empty">참석 확정 선수를 선택한 뒤 이 쿼터의 포메이션 추천 버튼을 눌러주세요.</p>';
+    $("bench-area").innerHTML="";
+    renderPlayCounts();
+    return;
+  }
+
+  $("lineup-area").innerHTML=`
+    <h3>Q${q} STARTING LINEUP · 선발 ${lineup.length}명</h3>
     <div class="lineup-grid">
       ${lineup.map((slot,index)=>`
         <div class="slot">
@@ -356,30 +607,89 @@ function renderLineup(){
 
   document.querySelectorAll("[data-slot]").forEach(select=>{
     select.addEventListener("change",()=>{
-      const index = Number(select.dataset.slot);
-      lineup[index].player_id = String(select.value);
+      const index=Number(select.dataset.slot);
+      lineup[index].player_id=String(select.value);
       renderLineup();
     });
   });
 
   renderBench();
+  renderPlayCounts();
 }
 
 function renderBench(){
-  const starterIds = lineup.map(p=>String(p.player_id));
-  const bench = players.filter(p=>
+  const q=getActiveQuarter();
+  const starterIds=(quarterLineups[q]||[]).map(p=>String(p.player_id));
+
+  const bench=players.filter(p=>
     selectedIds.has(String(p.id)) &&
     !starterIds.includes(String(p.id))
   );
 
-  $("bench-area").innerHTML = `
+  $("bench-area").innerHTML=`
     <h3>SUBSTITUTES · 후보 선수 (${bench.length}명)</h3>
     <p>${bench.length
-      ? bench.map(p=>safe(p.number)+"번 "+safe(p.name)+" ("+safe(p.position)+")").join(" / ")
-      : "후보 선수가 없습니다."
+      ?bench.map(p=>safe(p.number)+"번 "+safe(p.name)+" ("+safe(p.position)+")").join(" / ")
+      :"후보 선수가 없습니다."
     }</p>
   `;
 }
+
+// 선수별 출전 쿼터 집계
+function renderPlayCounts(){
+  const countByPlayer={};
+
+  Object.values(quarterLineups).forEach(rows=>{
+    rows.forEach(row=>{
+      const id=String(row.player_id);
+      countByPlayer[id]=(countByPlayer[id]||0)+1;
+    });
+  });
+
+  const rows=players.filter(p=>selectedIds.has(String(p.id)));
+
+  $("play-count-area").innerHTML=`
+    <h3>출전 쿼터 현황</h3>
+    <div class="player-grid">
+      ${rows.map(p=>`
+        <div class="player-check">
+          <span>${safe(p.number)}번 ${safe(p.name)}</span>
+          <small>${countByPlayer[String(p.id)]||0}쿼터</small>
+        </div>
+      `).join("")||'<p class="empty">참석 선수를 선택하면 출전 현황이 표시됩니다.</p>'}
+    </div>
+  `;
+}
+
+$("quarter-select").addEventListener("change",renderLineup);
+
+$("formation").addEventListener("change",()=>{
+  quarterFormations[getActiveQuarter()]=$("formation").value;
+});
+
+// 카카오톡 투표 안내문 복사
+$("copy-kakao").onclick=async()=>{
+  const opponent=$("opponent").value.trim()||"상대 팀 미정";
+  const date=$("match-date").value||"날짜 미정";
+  const time=$("match-time").value||"시간 미정";
+  const venue=$("venue").value.trim()||"장소 미정";
+
+  const message=
+`[검단라이즈FC 경기 참석 투표]
+상대팀: ${opponent}
+일정: ${date} ${time}
+장소: ${venue}
+
+이번 경기 참석 가능 여부를 카카오톡 투표로 남겨주세요!
+관리자가 투표 결과를 확인한 뒤 최종 참석 선수를 확정합니다.`;
+
+  try{
+    await navigator.clipboard.writeText(message);
+    $("message").textContent="카카오톡 안내문을 복사했습니다. 단체 채팅방에 붙여넣어 주세요.";
+  }catch(e){
+    window.prompt("아래 문구를 복사해 카카오톡 단체방에 공유하세요.",message);
+  }
+};
 
 function collectAttendance(){
   return players
@@ -392,164 +702,205 @@ function validateMatch(){
     alert("상대 팀을 입력하세요.");
     return false;
   }
+
   if(!$("match-date").value){
     alert("경기 날짜를 선택하세요.");
     return false;
   }
-  if(!selectedIds.size){
-    alert("참석 선수를 선택하세요.");
-    return false;
-  }
+
   return true;
 }
 
-// 경기 저장
+function flattenLineups(){
+  return [1,2,3,4].flatMap(q=>
+    (quarterLineups[q]||[]).map(row=>({
+      ...row,
+      quarter:q,
+      formation:quarterFormations[q]||row.formation||"4-2-1-3"
+    }))
+  );
+}
+
+// 경기 일정 및 포메이션 저장
 async function saveMatch(publish){
   if(!validateMatch()) return false;
 
-  if(publish && lineup.length !== 11){
-    alert("선발 11명을 추천하고 확인한 뒤 공개해 주세요.");
+  const allLineups=flattenLineups();
+
+  if(publish && !allLineups.length){
+    alert("일정은 먼저 저장할 수 있습니다. 포메이션을 구성한 뒤 공개해 주세요.");
     return false;
   }
 
-  if(publish){
-    const ids = lineup.map(p=>String(p.player_id));
-    if(new Set(ids).size !== ids.length){
-      alert("선발 명단에 같은 선수가 중복되어 있습니다.");
+  for(let q=1;q<=4;q++){
+    const ids=(quarterLineups[q]||[]).map(p=>String(p.player_id));
+
+    if(new Set(ids).size!==ids.length){
+      alert(q+"쿼터에 같은 선수가 중복되어 있습니다.");
       return false;
     }
   }
 
-  const payload = {
+  const formations=[1,2,3,4]
+    .filter(q=>(quarterLineups[q]||[]).length)
+    .map(q=>`Q${q} ${quarterFormations[q]}`)
+    .join(" / ");
+
+  const payload={
     opponent:$("opponent").value.trim(),
+
+    opponent_logo_url:
+      generatedOpponentName === $("opponent").value.trim()
+        ? generatedOpponentLogoUrl
+        : null,
+
     match_date:$("match-date").value,
-    match_time:$("match-time").value || null,
+    match_time:$("match-time").value||null,
     venue:$("venue").value.trim(),
     attendance:collectAttendance(),
-    formation:$("formation").value,
-    lineup:lineup,
+    formation:formations||"미정",
+    lineup:allLineups,
     is_published:publish,
     status:"scheduled",
     updated_at:new Date().toISOString()
   };
 
   if(publish){
-    payload.approved_by = currentUser.id;
-    payload.approved_at = new Date().toISOString();
+    payload.approved_by=currentUser.id;
+    payload.approved_at=new Date().toISOString();
   }
 
-  $("message").textContent = "저장 중입니다...";
+  $("message").textContent="저장 중입니다...";
 
   let result;
 
   if(editingId){
-    result = await db.from("matches")
+    result=await db.from("matches")
       .update(payload)
       .eq("id",editingId);
   }else{
-    result = await db.from("matches")
+    result=await db.from("matches")
       .insert(payload)
       .select("id")
       .single();
   }
 
   if(result.error){
-    $("message").textContent = "저장 실패: " + result.error.message;
+    $("message").textContent="저장 실패: "+result.error.message;
     return false;
   }
 
-  if(result.data && result.data.id){
-    editingId = result.data.id;
+  if(result.data?.id){
+    editingId=result.data.id;
   }
 
-  $("message").textContent = publish
-    ? "감독 승인 완료! 홈페이지 공개가 완료되었습니다."
-    : "경기 일정이 임시 저장되었습니다.";
+  $("message").textContent=publish
+    ?"감독 승인 완료! 홈페이지 공개가 완료되었습니다."
+    :"경기 일정이 저장되었습니다. 참석 투표 후 선수와 포메이션을 추가할 수 있습니다.";
 
   await loadMatches();
   return true;
 }
 
-$("save-draft").onclick = ()=>saveMatch(false);
+$("save-draft").onclick=()=>saveMatch(false);
 
-$("publish").onclick = async()=>{
-  if(!confirm("감독 최종 승인 후 홈페이지에 공개하시겠습니까?")) return;
+$("publish").onclick=async()=>{
+  if(!confirm("감독 최종 승인 후 홈페이지에 공개하시겠습니까?"))return;
   await saveMatch(true);
 };
 
 // 경기 결과 저장
-$("save-result").onclick = async()=>{
+$("save-result").onclick=async()=>{
   if(!editingId){
     alert("먼저 경기 일정을 저장하거나 기존 경기를 선택하세요.");
     return;
   }
 
-  const home = $("home-score").value;
-  const away = $("away-score").value;
+  const home=$("home-score").value;
+  const away=$("away-score").value;
 
-  if(home==="" || away===""){
+  if(home===""||away===""){
     alert("양 팀의 점수를 모두 입력하세요.");
     return;
   }
 
-  const {error} = await db.from("matches")
-    .update({
-      home_score:Number(home),
-      away_score:Number(away),
-      scorers:$("scorers").value.split("\n").map(s=>s.trim()).filter(Boolean),
-      match_notes:$("match-notes").value.trim(),
-      status:"finished",
-      is_published:true,
-      updated_at:new Date().toISOString()
-    })
-    .eq("id",editingId);
+  const {error}=await db.from("matches").update({
+    home_score:Number(home),
+    away_score:Number(away),
+    scorers:$("scorers").value.split("\n").map(s=>s.trim()).filter(Boolean),
+    match_notes:$("match-notes").value.trim(),
+    status:"finished",
+    is_published:true,
+    updated_at:new Date().toISOString()
+  }).eq("id",editingId);
 
   if(error){
-    alert("결과 저장 실패: " + error.message);
+    alert("결과 저장 실패: "+error.message);
     return;
   }
 
-  alert("경기 결과가 저장되고 홈페이지에 공개되었습니다.");
+  alert("경기 결과가 저장되고 공개되었습니다.");
   await loadMatches();
 };
 
-// 기존 경기 목록
+// 등록된 경기 목록
 async function loadMatches(){
-  const {data,error} = await db.from("matches")
+  const {data,error}=await db.from("matches")
     .select("*")
     .order("match_date",{ascending:false});
 
   if(error){
-    $("match-list").textContent = "경기 목록 조회 실패: " + error.message;
+    $("match-list").textContent="경기 목록 조회 실패: "+error.message;
     return;
   }
 
-  if(!data || !data.length){
-    $("match-list").innerHTML = '<p class="empty">등록된 경기가 없습니다.</p>';
+  if(!data?.length){
+    $("match-list").innerHTML='<p class="empty">등록된 경기가 없습니다.</p>';
     return;
   }
 
-  $("match-list").innerHTML = data.map(m=>`
-    <div class="match-item">
-      <div class="match-top">
-        <strong>${safe(m.opponent)}</strong>
-        <span class="tag ${m.is_published?"live":""}">
-          ${m.is_published?"홈페이지 공개":"임시 저장"}
-        </span>
+  $("match-list").innerHTML=data.map(m=>{
+    const counts={};
+
+    (m.lineup||[]).forEach(row=>{
+      const id=String(row.player_id);
+      counts[id]=(counts[id]||0)+1;
+    });
+
+    const totalPlayers=Object.keys(counts).length;
+
+    const quarterSummary=[1,2,3,4].map(q=>{
+      const n=(m.lineup||[]).filter(row=>Number(row.quarter||1)===q).length;
+      return n?`Q${q} ${n}명`:"";
+    }).filter(Boolean).join(" · ");
+
+    return `
+      <div class="match-item">
+        <div class="match-top">
+          <strong>${safe(m.opponent)}</strong>
+          <span class="tag ${m.is_published?"live":""}">
+            ${m.is_published?"홈페이지 공개":"일정 등록"}
+          </span>
+        </div>
+        <p>📅 ${safe(m.match_date)} ${safe(m.match_time||"")}</p>
+        <p>📍 ${safe(m.venue||"장소 미정")}</p>
+        <p>⚽ ${safe(m.formation||"포메이션 미정")}</p>
+        ${quarterSummary?`<p>쿼터 구성: ${safe(quarterSummary)}</p>`:""}
+        ${totalPlayers
+          ?`<p>출전 선수 ${totalPlayers}명 · 총 ${Object.values(counts).reduce((a,b)=>a+b,0)}회 출전</p>`
+          :"<p>참석 투표 및 선발 구성 대기</p>"
+        }
+        <p>${m.status==="finished"
+          ?"결과: "+safe(m.home_score)+" : "+safe(m.away_score)
+          :"경기 예정"
+        }</p>
+        <div class="actions">
+          <button class="gold" data-edit="${safe(m.id)}">수정 및 결과 입력</button>
+          <button class="red" data-delete="${safe(m.id)}">삭제</button>
+        </div>
       </div>
-      <p>📅 ${safe(m.match_date)} ${safe(m.match_time||"")}</p>
-      <p>📍 ${safe(m.venue||"장소 미정")}</p>
-      <p>⚽ ${safe(m.formation||"포메이션 미정")}</p>
-      <p>${m.status==="finished"
-        ? "결과: "+safe(m.home_score)+" : "+safe(m.away_score)
-        : "경기 예정"
-      }</p>
-      <div class="actions">
-        <button class="gold" data-edit="${safe(m.id)}">수정 및 결과 입력</button>
-        <button class="red" data-delete="${safe(m.id)}">삭제</button>
-      </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 
   document.querySelectorAll("[data-edit]").forEach(btn=>{
     btn.onclick=()=>editMatch(btn.dataset.edit);
@@ -560,81 +911,119 @@ async function loadMatches(){
   });
 }
 
+// 기존 경기 수정
 async function editMatch(id){
-  const {data,error} = await db.from("matches")
-    .select("*").eq("id",id).single();
+  const {data,error}=await db.from("matches")
+    .select("*")
+    .eq("id",id)
+    .single();
 
   if(error){
     alert(error.message);
     return;
   }
 
-  editingId = data.id;
-  editingMatch = data;
+  editingId=data.id;
+  editingMatch=data;
 
-  $("form-title").textContent = "경기 정보 수정";
-  $("opponent").value = data.opponent || "";
-  $("match-date").value = data.match_date || "";
-  $("match-time").value = data.match_time || "";
-  $("venue").value = data.venue || "";
-  $("formation").value = data.formation || "4-3-3";
+  $("form-title").textContent="경기 정보 수정";
+  $("opponent").value=data.opponent||"";
+  generatedOpponentLogoUrl = data.opponent_logo_url || "";
+generatedOpponentName = generatedOpponentLogoUrl
+  ? (data.opponent || "")
+  : "";
 
-  selectedIds = new Set((data.attendance||[]).map(String));
-  lineup = data.lineup || [];
+renderOpponentLogoPreview();
+  $("match-date").value=data.match_date||"";
+  $("match-time").value=data.match_time||"";
+  $("venue").value=data.venue||"";
 
-  $("home-score").value = data.home_score ?? "";
-  $("away-score").value = data.away_score ?? "";
-  $("scorers").value = (data.scorers||[]).join("\n");
-  $("match-notes").value = data.match_notes || "";
+  selectedIds=new Set((data.attendance||[]).map(String));
+
+  quarterLineups={1:[],2:[],3:[],4:[]};
+  quarterFormations={
+    1:"4-2-1-3",2:"4-2-1-3",3:"4-2-1-3",4:"4-2-1-3"
+  };
+
+  // 기존 데이터 호환: quarter 정보가 없으면 1쿼터로 처리
+  (data.lineup||[]).forEach(row=>{
+    const q=Number(row.quarter||1);
+
+    if(q>=1&&q<=4){
+      quarterLineups[q].push({...row,quarter:q});
+
+      if(row.formation){
+        quarterFormations[q]=row.formation;
+      }
+    }
+  });
+
+  $("quarter-select").value="1";
+  $("formation").value=quarterFormations[1];
+
+  $("home-score").value=data.home_score??"";
+  $("away-score").value=data.away_score??"";
+  $("scorers").value=(data.scorers||[]).join("\n");
+  $("match-notes").value=data.match_notes||"";
 
   renderPlayers();
+  renderLineup();
 
-  if(lineup.length) renderLineup();
-  else{
-    $("lineup-area").innerHTML =
-      '<p class="empty">아직 선발 명단이 없습니다.</p>';
-    $("bench-area").innerHTML = "";
-  }
-
-  $("message").textContent = data.is_published
-    ? "현재 홈페이지 공개 중인 경기입니다. 수정 후 다시 승인해 주세요."
-    : "임시 저장된 경기입니다.";
+  $("message").textContent=data.is_published
+    ?"현재 홈페이지 공개 중인 경기입니다. 수정 후 다시 승인해 주세요."
+    :"저장된 경기입니다. 참석 선수와 쿼터별 포메이션을 계속 편집할 수 있습니다.";
 
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
+// 경기 삭제
 async function deleteMatch(id){
-  if(!confirm("이 경기 정보를 삭제하시겠습니까?")) return;
+  if(!confirm("이 경기 정보를 삭제하시겠습니까?"))return;
 
-  const {error} = await db.from("matches").delete().eq("id",id);
+  const {error}=await db.from("matches").delete().eq("id",id);
 
   if(error){
-    alert("삭제 실패: " + error.message);
+    alert("삭제 실패: "+error.message);
     return;
   }
 
-  if(editingId===id) resetForm();
+  if(String(editingId)===String(id)){
+    resetForm();
+    generatedOpponentLogoUrl = "";
+generatedOpponentName = "";
+renderOpponentLogoPreview();
+  }
 
   alert("경기가 삭제되었습니다.");
   await loadMatches();
 }
 
+// 입력 초기화
 function resetForm(){
-  editingId = null;
-  editingMatch = null;
+  editingId=null;
+  editingMatch=null;
   selectedIds.clear();
-  lineup = [];
 
-  ["opponent","match-date","match-time","venue",
-   "home-score","away-score","scorers","match-notes"]
-    .forEach(id=>$(id).value="");
+  quarterLineups={1:[],2:[],3:[],4:[]};
+  quarterFormations={
+    1:"4-2-1-3",2:"4-2-1-3",3:"4-2-1-3",4:"4-2-1-3"
+  };
 
-  $("formation").value = "4-3-3";
-  $("form-title").textContent = "경기 일정 등록";
-  $("lineup-area").innerHTML =
-    '<p class="empty">참석 선수를 선택한 후 추천 버튼을 눌러주세요.</p>';
-  $("bench-area").innerHTML = "";
-  $("message").textContent = "";
+  [
+    "opponent","match-date","match-time","venue",
+    "home-score","away-score","scorers","match-notes"
+  ].forEach(id=>$(id).value="");
+
+  $("quarter-select").value="1";
+  $("formation").value="4-2-1-3";
+  $("form-title").textContent="경기 일정 등록";
+
+  $("lineup-area").innerHTML=
+    '<p class="empty">일정을 저장한 뒤 참석 선수를 선택하고 포메이션을 구성하세요.</p>';
+
+  $("bench-area").innerHTML="";
+  $("play-count-area").innerHTML="";
+  $("message").textContent="";
 
   renderPlayers();
 }
@@ -654,14 +1043,13 @@ function startRealtime(){
 
 // 시작
 (async()=>{
-  const allowed = await checkAdmin();
-  if(!allowed) return;
+  const allowed=await checkAdmin();
+  if(!allowed)return;
 
   await loadPlayers();
   await loadMatches();
   startRealtime();
 })();
 </script>
-
 </body>
 </html>

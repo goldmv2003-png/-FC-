@@ -443,12 +443,145 @@ checkLoginStatus();
 
 console.log("GEOMDAN RISE FC 전체 기능 연결 완료!");
 
+
+// ========================================
+
 // ========================================
 // MAIN PAGE - UPCOMING MATCHES
 // ========================================
 
 const mainMatchList = document.getElementById("match-list");
 const mainMatchBox = document.querySelector(".match-box");
+
+const RISE_MAIN_LOGO = "images/라이즈FC 엠블럼.png";
+
+function getTodayDate() {
+  const now = new Date();
+
+  const koreaDate = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Seoul" })
+  );
+
+  const year = koreaDate.getFullYear();
+  const month = String(koreaDate.getMonth() + 1).padStart(2, "0");
+  const day = String(koreaDate.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+
+// 경기 대진표 엠블럼 HTML
+function renderMainMatchup(match, compact = false) {
+
+  const opponent = escapePlayerHTML(match.opponent || "상대팀 미정");
+
+  const opponentLogo = match.opponent_logo_url
+    ? `
+      <img
+        src="${escapePlayerHTML(match.opponent_logo_url)}"
+        alt="${opponent} 엠블럼"
+        style="
+          width:${compact ? "55px" : "75px"};
+          height:${compact ? "55px" : "75px"};
+          object-fit:contain;
+        "
+      >
+    `
+    : `
+      <div style="
+        width:${compact ? "55px" : "75px"};
+        height:${compact ? "55px" : "75px"};
+        border:1px solid #555;
+        border-radius:50%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        color:#c9a646;
+        font-size:12px;
+        font-weight:bold;
+      ">FC</div>
+    `;
+
+  const logoSize = compact ? "55px" : "75px";
+
+  return `
+    <div style="
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:${compact ? "12px" : "25px"};
+      width:100%;
+      flex-wrap:nowrap;
+    ">
+
+      <div style="
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        gap:7px;
+        min-width:0;
+      ">
+
+        <img
+          src="${RISE_MAIN_LOGO}"
+          alt="검단 라이즈FC 엠블럼"
+          style="
+            width:${logoSize};
+            height:${logoSize};
+            object-fit:contain;
+          "
+        >
+
+        <strong style="
+          color:white;
+          font-size:${compact ? "12px" : "16px"};
+          white-space:nowrap;
+        ">RISE FC</strong>
+
+        ${compact ? "" : `
+          <span style="color:#aaa;font-size:12px;">
+            검단 라이즈FC
+          </span>
+        `}
+
+      </div>
+
+      <b style="
+        color:#c9a646;
+        font-size:${compact ? "16px" : "23px"};
+        flex-shrink:0;
+      ">VS</b>
+
+      <div style="
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        gap:7px;
+        min-width:0;
+      ">
+
+        ${opponentLogo}
+
+        <strong style="
+          color:white;
+          font-size:${compact ? "12px" : "16px"};
+          text-align:center;
+          max-width:130px;
+          overflow-wrap:anywhere;
+        ">${opponent}</strong>
+
+        ${compact ? "" : `
+          <span style="color:#aaa;font-size:12px;">
+            상대 구단
+          </span>
+        `}
+
+      </div>
+
+    </div>
+  `;
+}
+
 
 async function loadMainMatches() {
 
@@ -465,20 +598,19 @@ async function loadMainMatches() {
     const { data, error } = await supabaseClient
       .from("matches")
       .select("*")
-      .eq("is_published", true)
       .order("match_date", { ascending: true });
 
     if (error) throw error;
 
-    const today = new Date().toLocaleDateString("en-CA");
+    const today = getTodayDate();
 
-    // 다가오는 경기만 추출
     const upcomingMatches = (data || [])
       .filter(match => {
 
         const matchDate = String(match.match_date || "").slice(0, 10);
 
         return (
+          matchDate !== "" &&
           matchDate >= today &&
           match.status !== "finished"
         );
@@ -489,7 +621,8 @@ async function loadMainMatches() {
       )
       .slice(0, 3);
 
-    // 경기가 없을 때
+
+    // 예정 경기 없음
     if (upcomingMatches.length === 0) {
 
       mainMatchList.innerHTML = `
@@ -505,32 +638,20 @@ async function loadMainMatches() {
       return;
     }
 
-    // 대표 경기 표시
+
+    // 대표 경기
     const nextMatch = upcomingMatches[0];
 
     if (mainMatchBox) {
 
       mainMatchBox.style.display = "flex";
 
-      const teamBoxes = mainMatchBox.querySelectorAll("div");
-
-      if (teamBoxes.length >= 2) {
-
-        teamBoxes[0].innerHTML = `
-          <strong>RISE FC</strong>
-          <span>검단 라이즈FC</span>
-        `;
-
-        teamBoxes[1].innerHTML = `
-          <strong>${escapePlayerHTML(nextMatch.opponent)}</strong>
-          <span>상대 구단</span>
-        `;
-
-      }
+      mainMatchBox.innerHTML = renderMainMatchup(nextMatch, false);
 
     }
 
-    // 경기 목록 출력
+
+    // 경기 목록
     mainMatchList.innerHTML = upcomingMatches.map(match => `
 
       <article style="
@@ -548,29 +669,38 @@ async function loadMainMatches() {
           padding:6px 10px;
           font-size:11px;
           border-radius:4px;
-          margin-bottom:12px;
+          margin-bottom:15px;
         ">
           UPCOMING MATCH
         </span>
 
-        <h3 style="
-          color:white;
-          font-size:20px;
-          margin-bottom:14px;
+        <div style="
+          display:flex;
+          justify-content:center;
+          align-items:center;
+          margin:5px 0 20px;
+          min-height:90px;
         ">
-          GEOMDAN RISE FC vs ${escapePlayerHTML(match.opponent)}
-        </h3>
+          ${renderMainMatchup(match, true)}
+        </div>
 
-        <p style="
-          color:#bbb;
-          font-size:14px;
-          line-height:2;
+        <div style="
+          border-top:1px solid #333;
+          padding-top:12px;
         ">
-          📅 ${escapePlayerHTML(match.match_date)}
-          ${escapePlayerHTML(match.match_time || "")}
-          <br>
-          📍 ${escapePlayerHTML(match.venue || "장소 미정")}
-        </p>
+
+          <p style="
+            color:#bbb;
+            font-size:14px;
+            line-height:2;
+          ">
+            📅 ${escapePlayerHTML(match.match_date)}
+            ${escapePlayerHTML(match.match_time || "시간 미정")}
+            <br>
+            📍 ${escapePlayerHTML(match.venue || "장소 미정")}
+          </p>
+
+        </div>
 
       </article>
 
@@ -592,8 +722,10 @@ async function loadMainMatches() {
 
 }
 
+
 // 최초 경기 데이터 로딩
 loadMainMatches();
+
 
 // 경기 데이터 실시간 업데이트
 supabaseClient
@@ -611,8 +743,6 @@ supabaseClient
   )
   .subscribe();
 
-// ========================================
-// RISE FC NOTICE & PHOTO GALLERY
 // ========================================
 
 const noticeList = document.getElementById("notice-list");
@@ -668,11 +798,9 @@ async function checkRiseFcAdmin() {
   riseFcIsAdmin = !!admin;
 
   updateRiseFcAdminUI();
-    riseFcIsAdmin = !!admin;
-
-  updateRiseFcAdminUI();
   renderRiseHistoryAdminTools();
 }
+
 
 // ========================================
 // 관리자 버튼 표시
@@ -810,6 +938,7 @@ async function loadRiseNotices() {
     </div>
   `;
 
+  // 공지사항 테이블에서 조회
   const { data, error } = await supabaseClient
     .from("rise_fc_notices")
     .select("*")
@@ -1401,6 +1530,8 @@ supabaseClient.auth.onAuthStateChange(() => {
 });
 
 console.log("RISE FC NOTICE & GALLERY 연결 완료!");
+
+
 // TOP 버튼
 const topButton = document.getElementById("topButton");
 
@@ -1426,6 +1557,7 @@ if (topButton) {
 
   checkTopButton();
 }
+
 
 // ========================================
 // RISE FC HISTORY MANAGEMENT

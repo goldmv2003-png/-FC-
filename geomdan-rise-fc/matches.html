@@ -14,7 +14,7 @@
 /* 경기 페이지 */
 .match-page-list{
   display:grid;
-  gap:20px;
+  gap:15px;
   margin:30px 0;
 }
 
@@ -22,19 +22,20 @@
   background:#151515;
   border:1px solid #333;
   border-radius:12px;
-  padding:25px;
-  margin-bottom:5px;
+  padding:17px 20px;
+  margin-bottom:0;
 }
 
 .match-data-card h2{
-  font-size:23px;
-  margin:12px 0;
+  font-size:18px;
+  line-height:1.5;
+  margin:10px 0;
 }
 
 .match-meta{
   color:#aaa;
-  font-size:14px;
-  line-height:2;
+  font-size:13px;
+  line-height:1.9;
 }
 
 .match-badge{
@@ -51,6 +52,63 @@
   color:#8cdb9e;
 }
 
+/* 자세히 보기 버튼 */
+.match-detail-toggle{
+  width:100%;
+  margin-top:14px;
+  padding:13px 5px 2px;
+  border:none;
+  border-top:1px solid #383838;
+  background:transparent;
+  color:#c9a646;
+  font-size:13px;
+  font-weight:bold;
+  cursor:pointer;
+  text-align:center;
+}
+
+.match-detail-toggle:hover{
+  color:#f1d27a;
+}
+
+/* 상세 내용 */
+.match-detail-content{
+  display:none;
+  margin-top:18px;
+  padding-top:15px;
+  border-top:1px solid #383838;
+}
+
+.match-detail-content.open{
+  display:block;
+}
+
+.match-detail-heading{
+  color:#c9a646;
+  font-size:14px;
+  font-weight:bold;
+  margin-bottom:12px;
+}
+
+/* 선발 발표 전 안내 */
+.match-upcoming-notice{
+  background:#202020;
+  border:1px solid #444;
+  border-radius:8px;
+  padding:20px 15px;
+  color:#ddd;
+  text-align:center;
+  font-size:14px;
+  line-height:1.8;
+}
+
+.match-upcoming-notice strong{
+  color:#c9a646;
+  display:block;
+  margin-bottom:6px;
+}
+
+/* 기존 경기 상세 디자인 */
 .formation-box{
   background:#202020;
   border:1px solid #444;
@@ -250,7 +308,11 @@
 @media(max-width:600px){
 
   .match-data-card{
-    padding:17px;
+    padding:15px;
+  }
+
+  .match-data-card h2{
+    font-size:16px;
   }
 
   .result-score{
@@ -280,6 +342,10 @@
   .pitch-center-circle{
     width:85px;
     height:85px;
+  }
+
+  .match-detail-toggle{
+    padding:13px 5px 2px;
   }
 }
 </style>
@@ -315,11 +381,13 @@
   <!-- 경기 필터 -->
   <div class="match-tabs match-page-tabs">
 
-    <button class="active" data-filter="ALL">전체 경기</button>
+    <button type="button" data-filter="ALL">전체 경기</button>
 
-    <button data-filter="UPCOMING">예정 경기</button>
+    <button type="button" class="active" data-filter="UPCOMING">
+      예정 경기
+    </button>
 
-    <button data-filter="RESULTS">경기 결과</button>
+    <button type="button" data-filter="RESULTS">경기 결과</button>
 
   </div>
 
@@ -346,17 +414,15 @@
 
 </footer>
 
-<script>
 
+<script>
 /* =================================
    SUPABASE 연결
 ================================= */
 
-const SUPABASE_URL =
-"https://gqsecxgzegyzzwlmfavr.supabase.co";
+const SUPABASE_URL = "https://gqsecxgzegyzzwlmfavr.supabase.co";
 
-const SUPABASE_KEY =
-"sb_publishable_8BKTlYkIEEwNS-dDauIfFg_3FSdkcDJ";
+const SUPABASE_KEY = "sb_publishable_8BKTlYkIEEwNS-dDauIfFg_3FSdkcDJ";
 
 const db = window.supabase.createClient(
   SUPABASE_URL,
@@ -367,7 +433,7 @@ const list = document.getElementById("all-match-list");
 
 let matches = [];
 let players = [];
-let currentFilter = "ALL";
+let currentFilter = "UPCOMING";
 let playerLoadError = false;
 
 
@@ -375,15 +441,39 @@ let playerLoadError = false;
    HTML 안전 처리
 ================================= */
 
-function safe(value){
+function safe(value) {
 
-  return String(value ?? "").replace(/[&<>"']/g,c=>({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#039;"
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
   })[c]);
+
+}
+
+
+/* =================================
+   한국 날짜
+================================= */
+
+function getKoreaToday() {
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+
+  const values = {};
+
+  parts.forEach(part => {
+    values[part.type] = part.value;
+  });
+
+  return `${values.year}-${values.month}-${values.day}`;
 
 }
 
@@ -392,7 +482,7 @@ function safe(value){
    경기 데이터 불러오기
 ================================= */
 
-async function loadPublicMatches(){
+async function loadPublicMatches() {
 
   list.innerHTML = `
     <div class="match-loading">
@@ -400,54 +490,51 @@ async function loadPublicMatches(){
     </div>
   `;
 
-  try{
+  try {
 
-    // 공개 승인된 경기만 조회
-    const {data,error} = await db
+    const { data, error } = await db
       .from("matches")
       .select("*")
-      .eq("is_published",true)
-      .order("match_date",{ascending:false});
+      .order("match_date", { ascending: true });
 
-    if(error){
-      throw new Error("경기 데이터 조회 실패: " + error.message);
-    }
+    if (error) throw error;
 
     matches = data || [];
 
+    console.log("전체 경기 데이터:", matches);
+    console.log("불러온 경기 수:", matches.length);
+
     // 선수 데이터 조회
-    const {data:playerData,error:playerError} = await db
+    const { data: playerData, error: playerError } = await db
       .from("players")
       .select("id,number,name,position");
 
-    if(playerError){
+    if (playerError) {
 
-      console.error("선수 조회 오류:",playerError);
+      console.error("선수 조회 오류:", playerError);
 
       playerLoadError = true;
-
       players = [];
 
-    }else{
+    } else {
 
       players = playerData || [];
-
       playerLoadError = false;
 
     }
 
     renderMatches();
 
-  }catch(error){
+  } catch (error) {
 
-    console.error("경기 로딩 오류:",error);
+    console.error("경기 로딩 오류:", error);
 
     list.innerHTML = `
       <div class="match-error">
         경기 정보를 불러오지 못했습니다.<br><br>
         ${safe(error.message)}
         <br><br>
-        Supabase의 matches 테이블 RLS 정책을 확인해 주세요.
+        Supabase matches 테이블의 조회 권한을 확인해 주세요.
       </div>
     `;
 
@@ -460,10 +547,10 @@ async function loadPublicMatches(){
    선수 정보 찾기
 ================================= */
 
-function findPlayer(id){
+function findPlayer(id) {
 
   return players.find(
-    p=>String(p.id)===String(id)
+    p => String(p.id) === String(id)
   );
 
 }
@@ -473,13 +560,13 @@ function findPlayer(id){
    포메이션 작전판
 ================================= */
 
-function renderTacticsBoard(match){
+function renderTacticsBoard(match) {
 
   const lineup = Array.isArray(match.lineup)
     ? match.lineup
     : [];
 
-  if(!lineup.length){
+  if (!lineup.length) {
 
     return `
       <p class="match-loading">
@@ -489,8 +576,7 @@ function renderTacticsBoard(match){
 
   }
 
-  // 선수 슬롯 번호 추출
-  function getNumber(slot){
+  function getNumber(slot) {
 
     const found = String(slot.slot || "").match(/\d+/);
 
@@ -498,61 +584,46 @@ function renderTacticsBoard(match){
 
   }
 
-  // 포지션별 선수 배치
   let rows = [];
 
-  if(match.formation === "4-2-3-1"){
+  if (match.formation === "4-2-3-1") {
 
     rows = [
 
-      // 공격수
-      lineup.filter(p=>p.position==="FW"),
+      lineup.filter(p => p.position === "FW"),
 
-      // 공격형 미드필더
       lineup.filter(
-        p=>p.position==="MF" && getNumber(p)>=3
+        p => p.position === "MF" && getNumber(p) >= 3
       ),
 
-      // 수비형 미드필더
       lineup.filter(
-        p=>p.position==="MF" && getNumber(p)<=2
+        p => p.position === "MF" && getNumber(p) <= 2
       ),
 
-      // 수비수
-      lineup.filter(p=>p.position==="DF"),
+      lineup.filter(p => p.position === "DF"),
 
-      // 골키퍼
-      lineup.filter(p=>p.position==="GK")
+      lineup.filter(p => p.position === "GK")
 
     ];
 
-  }else{
+  } else {
 
     rows = [
-
-      lineup.filter(p=>p.position==="FW"),
-
-      lineup.filter(p=>p.position==="MF"),
-
-      lineup.filter(p=>p.position==="DF"),
-
-      lineup.filter(p=>p.position==="GK")
-
+      lineup.filter(p => p.position === "FW"),
+      lineup.filter(p => p.position === "MF"),
+      lineup.filter(p => p.position === "DF"),
+      lineup.filter(p => p.position === "GK")
     ];
 
   }
 
-  // 같은 라인 안에서는 슬롯 번호 순서대로 배치
   rows = rows
-    .filter(row=>row.length)
-    .map(row=>row.sort((a,b)=>getNumber(a)-getNumber(b)));
+    .filter(row => row.length)
+    .map(row => row.sort((a, b) => getNumber(a) - getNumber(b)));
 
   return `
-
     <div class="pitch-title">
-
       STARTING XI · ${safe(match.formation || "FORMATION")}
-
     </div>
 
     <div class="pitch-direction">
@@ -562,44 +633,32 @@ function renderTacticsBoard(match){
     <div class="tactics-pitch">
 
       <div class="pitch-half-line"></div>
-
       <div class="pitch-center-circle"></div>
 
-      ${rows.map(row=>`
+      ${rows.map(row => `
 
         <div class="pitch-row">
 
-          ${row.map(slot=>{
+          ${row.map(slot => {
 
             const player = findPlayer(slot.player_id);
 
             return `
-
               <div class="pitch-player">
 
                 <div class="pitch-player-number">
-
                   ${player ? safe(player.number) : "?"}
-
                 </div>
 
                 <div class="pitch-player-name">
-
-                  ${player
-                    ? safe(player.name)
-                    : "선수 정보 없음"
-                  }
-
+                  ${player ? safe(player.name) : "선수 정보 없음"}
                 </div>
 
                 <div class="pitch-position-label">
-
                   ${safe(slot.slot || slot.position)}
-
                 </div>
 
               </div>
-
             `;
 
           }).join("")}
@@ -613,7 +672,6 @@ function renderTacticsBoard(match){
     <div class="pitch-footer">
       GEOMDAN RISE FC · OFFICIAL STARTING XI
     </div>
-
   `;
 
 }
@@ -623,54 +681,99 @@ function renderTacticsBoard(match){
    경기 카드 출력
 ================================= */
 
-function renderMatches(){
+function renderMatches() {
+
+  const today = getKoreaToday();
 
   let filtered = [...matches];
 
   // 예정 경기
-  if(currentFilter==="UPCOMING"){
+  if (currentFilter === "UPCOMING") {
 
-    filtered = filtered.filter(
-      m=>m.status!=="finished"
+    filtered = filtered.filter(match => {
+
+      const status = String(match.status || "").toLowerCase();
+      const matchDate = String(match.match_date || "").slice(0, 10);
+
+      return (
+        status !== "finished" &&
+        matchDate !== "" &&
+        matchDate >= today
+      );
+
+    });
+
+    filtered.sort((a, b) =>
+      String(a.match_date).localeCompare(String(b.match_date))
     );
 
   }
 
   // 경기 결과
-  if(currentFilter==="RESULTS"){
+  else if (currentFilter === "RESULTS") {
 
-    filtered = filtered.filter(
-      m=>m.status==="finished"
+    filtered = filtered.filter(match =>
+      String(match.status || "").toLowerCase() === "finished"
+    );
+
+    filtered.sort((a, b) =>
+      String(b.match_date).localeCompare(String(a.match_date))
     );
 
   }
 
+  // 전체 경기
+  else {
+
+    filtered.sort((a, b) =>
+      String(a.match_date).localeCompare(String(b.match_date))
+    );
+
+  }
+
+  console.log(
+    "현재 탭:",
+    currentFilter,
+    "표시 경기:",
+    filtered.length
+  );
+
   // 경기 없음
-  if(!filtered.length){
+  if (!filtered.length) {
+
+    let message = "등록된 경기가 없습니다.";
+
+    if (currentFilter === "UPCOMING") {
+      message = "예정된 경기가 없습니다.";
+    }
+
+    if (currentFilter === "RESULTS") {
+      message = "아직 경기 결과가 없습니다.";
+    }
 
     list.innerHTML = `
-
       <div class="match-page-empty">
 
         <span>03</span>
 
-        <h2>등록된 경기가 없습니다.</h2>
+        <h2>${safe(message)}</h2>
 
         <p>
-          감독이 경기 일정을 승인하면 이곳에 표시됩니다.
+          경기 일정이 등록되면 이곳에 표시됩니다.
         </p>
 
       </div>
-
     `;
 
     return;
 
   }
 
-  list.innerHTML = filtered.map(match=>{
+  // 경기 카드 생성
+  list.innerHTML = filtered.map((match, index) => {
 
-    const finished = match.status==="finished";
+    const finished =
+      String(match.status || "").toLowerCase() === "finished";
 
     const lineup = Array.isArray(match.lineup)
       ? match.lineup
@@ -680,34 +783,30 @@ function renderMatches(){
       ? match.attendance
       : [];
 
-    // 세로형 작전판
+    const hasLineup = lineup.length > 0;
+
     const tacticsBoard = renderTacticsBoard(match);
 
-    // 선발 선수 ID
     const starterIds = lineup.map(
-      slot=>String(slot.player_id)
+      slot => String(slot.player_id)
     );
 
-    // 후보 선수
     const bench = attendance
-      .filter(id=>!starterIds.includes(String(id)))
-      .map(id=>findPlayer(id))
+      .filter(id => !starterIds.includes(String(id)))
+      .map(id => findPlayer(id))
       .filter(Boolean);
 
     const benchHTML = bench.length
-
-      ? bench.map(p=>
-          safe(p.number)+"번 "+safe(p.name)
+      ? bench.map(p =>
+          safe(p.number) + "번 " + safe(p.name)
         ).join(" / ")
-
       : "등록된 후보 선수가 없습니다.";
 
-    // 득점 기록
     const scorerHTML = Array.isArray(match.scorers)
-
-      ? match.scorers.map(s=>safe(s)).join("<br>")
-
+      ? match.scorers.map(s => safe(s)).join("<br>")
       : safe(match.scorers || "");
+
+    const cardId = `match-detail-${index}`;
 
     return `
 
@@ -715,16 +814,14 @@ function renderMatches(){
 
         <div>
 
-          <span class="match-badge ${finished?"finished":""}">
-
-            ${finished?"경기 종료":"경기 예정"}
-
+          <span class="match-badge ${finished ? "finished" : ""}">
+            ${finished ? "경기 종료" : "경기 예정"}
           </span>
 
         </div>
 
         <h2>
-          GEOMDAN RISE FC vs ${safe(match.opponent)}
+          GEOMDAN RISE FC vs ${safe(match.opponent || "상대팀 미정")}
         </h2>
 
         <div class="match-meta">
@@ -738,16 +835,31 @@ function renderMatches(){
 
         </div>
 
-        ${
-          finished
-          ? `
+        <button
+          type="button"
+          class="match-detail-toggle"
+          aria-expanded="false"
+          aria-controls="${cardId}"
+          onclick="toggleMatchDetail(this)"
+        >
+          ▼ 자세히 보기
+        </button>
+
+        <div
+          class="match-detail-content"
+          id="${cardId}"
+        >
+
+          ${finished ? `
+
+            <div class="match-detail-heading">
+              ⚽ MATCH RESULT · 경기 결과
+            </div>
 
             <div class="result-score">
-
-              ${safe(match.home_score)}
+              ${safe(match.home_score ?? 0)}
               :
-              ${safe(match.away_score)}
-
+              ${safe(match.away_score ?? 0)}
             </div>
 
             <div class="result-details">
@@ -771,21 +883,15 @@ function renderMatches(){
 
             </div>
 
-          `
-          : ""
-        }
+          ` : ""}
 
-        ${
-          lineup.length
-          ? `
+          ${hasLineup ? `
 
             <div class="formation-box">
 
               <div class="formation-title">
-
                 ⚽ CONFIRMED FORMATION ·
                 ${safe(match.formation || "미정")}
-
               </div>
 
               <strong>STARTING LINEUP · 선발 명단</strong>
@@ -806,33 +912,35 @@ function renderMatches(){
 
             </div>
 
-          `
-          : `
+          ` : `
 
-            <div class="formation-box">
+            <div class="match-upcoming-notice">
 
-              <div class="formation-title">
-                ⚽ CONFIRMED FORMATION
-              </div>
+              <strong>
+                ${finished
+                  ? "선발 명단 정보가 없습니다."
+                  : "아직 선발라인 발표 전이에요."
+                }
+              </strong>
 
-              <p>
-                확정된 선발 명단이 없습니다.
-              </p>
+              ${finished
+                ? "등록된 포메이션과 선발 선수 정보가 없습니다."
+                : "선발라인이 공개되면 포메이션과 선수별 포지션을 확인할 수 있습니다."
+              }
 
             </div>
 
-          `
-        }
+          `}
 
-        ${
-          playerLoadError
-          ? `
+          ${playerLoadError && hasLineup ? `
+
             <p class="match-error">
               선수 정보를 불러오지 못해 작전판의 선수 이름이 표시되지 않을 수 있습니다.
             </p>
-          `
-          : ""
-        }
+
+          ` : ""}
+
+        </div>
 
       </article>
 
@@ -844,19 +952,51 @@ function renderMatches(){
 
 
 /* =================================
-   경기 필터
+   경기 상세 보기 열기 / 닫기
 ================================= */
 
-document.querySelectorAll("[data-filter]").forEach(button=>{
+function toggleMatchDetail(button) {
 
-  button.addEventListener("click",()=>{
+  const detailId = button.getAttribute("aria-controls");
 
-    document.querySelectorAll("[data-filter]")
-      .forEach(btn=>btn.classList.remove("active"));
+  const detail = document.getElementById(detailId);
 
-    button.classList.add("active");
+  if (!detail) return;
 
-    currentFilter = button.dataset.filter;
+  const isOpen = detail.classList.toggle("open");
+
+  button.setAttribute("aria-expanded", String(isOpen));
+
+  button.textContent = isOpen
+    ? "▲ 자세히 접기"
+    : "▼ 자세히 보기";
+
+}
+
+
+/* =================================
+   경기 탭 클릭 기능
+================================= */
+
+const matchTabButtons = document.querySelectorAll(
+  ".match-page-tabs [data-filter]"
+);
+
+matchTabButtons.forEach(button => {
+
+  button.type = "button";
+
+  button.addEventListener("click", function(event) {
+
+    event.preventDefault();
+
+    currentFilter = this.dataset.filter;
+
+    matchTabButtons.forEach(btn => {
+      btn.classList.remove("active");
+    });
+
+    this.classList.add("active");
 
     renderMatches();
 
@@ -874,18 +1014,20 @@ db.channel("public-match-updates")
   .on(
     "postgres_changes",
     {
-      event:"*",
-      schema:"public",
-      table:"matches"
+      event: "*",
+      schema: "public",
+      table: "matches"
     },
-    ()=>{
+    () => {
+
       console.log("경기 데이터 변경 감지");
 
       loadPublicMatches();
+
     }
   )
 
-  .subscribe(status=>{
+  .subscribe(status => {
 
     console.log(
       "경기 실시간 연결 상태:",
@@ -899,10 +1041,20 @@ db.channel("public-match-updates")
    최초 실행
 ================================= */
 
+currentFilter = "UPCOMING";
+
+matchTabButtons.forEach(button => {
+
+  button.classList.toggle(
+    "active",
+    button.dataset.filter === "UPCOMING"
+  );
+
+});
+
 loadPublicMatches();
 
 </script>
 
 </body>
 </html>
-```
