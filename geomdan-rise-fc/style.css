@@ -2669,3 +2669,31 @@ footer strong { color: white; }
     padding: 13px 5px 2px;
   }
 }
+
+/* RISE FC 관리자 페이지 버튼 */
+
+#rise-admin-page-button {
+  white-space: nowrap;
+  transition: 0.2s;
+}
+
+#rise-admin-page-button:hover {
+  background: #fff !important;
+  color: #111 !important;
+}
+
+@media (max-width: 768px) {
+  #rise-admin-page-button {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 8px 0;
+    padding: 15px;
+    font-size: 14px;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+}

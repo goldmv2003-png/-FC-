@@ -760,16 +760,21 @@ async function saveMatch(publish){
     attendance:collectAttendance(),
     formation:formations||"미정",
     lineup:allLineups,
-    is_published:publish,
-    status:"scheduled",
-    updated_at:new Date().toISOString()
+    // 경기 일정은 임시 저장을 눌러도 홈페이지에 표시
+is_published:true,
+status:"scheduled",
+updated_at:new Date().toISOString()
   };
 
   if(publish){
-    payload.approved_by=currentUser.id;
-    payload.approved_at=new Date().toISOString();
-  }
-
+  // 감독 승인: 선발 명단까지 공개
+  payload.approved_by=currentUser.id;
+  payload.approved_at=new Date().toISOString();
+}else{
+  // 임시 저장: 일정만 공개하고 선발 명단은 비공개
+  payload.approved_by=null;
+  payload.approved_at=null;
+}
   $("message").textContent="저장 중입니다...";
 
   let result;

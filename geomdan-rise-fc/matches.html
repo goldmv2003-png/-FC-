@@ -70,7 +70,34 @@
 .match-detail-toggle:hover{
   color:#f1d27a;
 }
+/* 쿼터별 포메이션 선택 */
+.quarter-tabs{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:18px 0;
+}
 
+.quarter-tabs button{
+  background:#333;
+  color:#fff;
+  border:1px solid #555;
+  padding:10px 18px;
+  border-radius:5px;
+  cursor:pointer;
+}
+
+.quarter-tabs button.active{
+  background:#c9a646;
+  color:#000;
+  border-color:#c9a646;
+  font-weight:bold;
+}
+
+.quarter-board{
+  width:100%;
+}
 /* 상세 내용 */
 .match-detail-content{
   display:none;
@@ -557,66 +584,145 @@ function findPlayer(id) {
 
 
 /* =================================
-   포메이션 작전판
+   쿼터별 포메이션 작전판
 ================================= */
 
-function renderTacticsBoard(match) {
+function renderTacticsBoard(match, quarter) {
 
-  const lineup = Array.isArray(match.lineup)
+  const allLineups = Array.isArray(match.lineup)
     ? match.lineup
     : [];
 
-  if (!lineup.length) {
+  // 선택한 쿼터 선수만 가져오기
+  const lineup = allLineups.filter(row =>
+    Number(row.quarter || 1) === Number(quarter)
+  );
 
+  if (!lineup.length) {
     return `
       <p class="match-loading">
-        확정된 선발 명단이 없습니다.
+        ${quarter}쿼터 선발 명단이 없습니다.
       </p>
     `;
-
   }
 
+  // 해당 쿼터의 포메이션
+  const formation =
+    lineup.find(row => row.formation)?.formation || "FORMATION";
+
+  // 슬롯 번호 추출
   function getNumber(slot) {
-
     const found = String(slot.slot || "").match(/\d+/);
-
     return found ? Number(found[0]) : 0;
-
   }
 
-  let rows = [];
+  // 공격수부터 골키퍼까지 각 포지션별로 분리
+  const positionOrder = [
+    "FW",
+    "AM",
+    "MF",
+    "DM",
+    "DF",
+    "GK"
+  ];
 
-  if (match.formation === "4-2-3-1") {
+  const rows = positionOrder
+    .map(position =>
+      lineup
+        .filter(player => player.position === position)
+        .sort((a, b) => getNumber(a) - getNumber(b))
+    )
+    .filter(row => row.length > 0);
 
-    rows = [
+  return `
+    <div class="pitch-title">
+      Q${quarter} STARTING XI · ${safe(formation)}
+    </div>
 
-      lineup.filter(p => p.position === "FW"),
+    <div class="pitch-direction">
+      ▲ ATTACK
+    </div>
 
-      lineup.filter(
-        p => p.position === "MF" && getNumber(p) >= 3
-      ),
+    <div class="tactics-pitch">
 
-      lineup.filter(
-        p => p.position === "MF" && getNumber(p) <= 2
-      ),
+      <div class="pitch-half-line"></div>
+      <div class="pitch-center-circle"></div>
 
-      lineup.filter(p => p.position === "DF"),
+      ${rows.map(row => `
 
-      lineup.filter(p => p.position === "GK")
+        <div class="pitch-row">
 
-    ];
+          ${row.map(slot => {
 
-  } else {
+            const player = findPlayer(slot.player_id);
 
-    rows = [
-      lineup.filter(p => p.position === "FW"),
-      lineup.filter(p => p.position === "MF"),
-      lineup.filter(p => p.position === "DF"),
-      lineup.filter(p => p.position === "GK")
-    ];
+            return `
+              <div class="pitch-player">
 
+                <div class="pitch-player-number">
+                  ${player ? safe(player.number) : "?"}
+                </div>
+
+                <div class="pitch-player-name">
+                  ${player
+                    ? safe(player.name)
+                    : "선수 정보 없음"
+                  }
+                </div>
+
+                <div class="pitch-position-label">
+                  ${safe(slot.slot || slot.position)}
+                </div>
+
+              </div>
+            `;
+
+          }).join("")}
+
+        </div>
+
+      `).join("")}
+
+    </div>
+
+    <div class="pitch-footer">
+      GEOMDAN RISE FC · Q${quarter} OFFICIAL LINEUP
+    </div>
+  `;
+}
+
+
+/* =================================
+   공개 작전판 쿼터 전환
+================================= */
+
+function showMatchQuarter(button, matchId, quarter) {
+
+  const match = matches.find(m =>
+    String(m.id) === String(matchId)
+  );
+
+  if (!match) return;
+
+  const formationBox = button.closest(".formation-box");
+
+  if (!formationBox) return;
+
+  // 선택한 쿼터 버튼 표시
+  formationBox
+    .querySelectorAll(".quarter-tabs button")
+    .forEach(btn => btn.classList.remove("active"));
+
+  button.classList.add("active");
+
+  // 선택한 쿼터의 작전판만 출력
+  const board = formationBox.querySelector(".quarter-board");
+
+  if (board) {
+    board.innerHTML = renderTacticsBoard(match, quarter);
   }
 
+}
   rows = rows
     .filter(row => row.length)
     .map(row => row.sort((a, b) => getNumber(a) - getNumber(b)));

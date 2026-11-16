@@ -5,13 +5,31 @@
 
 // SUPABASE 연결
 const SUPABASE_URL = "https://gqsecxgzegyzzwlmfavr.supabase.co";
-
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_8BKTlYkIEEwNS-dDauIfFg_3FSdkcDJ";
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_PUBLISHABLE_KEY
 );
+
+
+// ========================================
+// 공통 HTML 보안 처리
+// ========================================
+
+function escapePlayerHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+function riseEscape(value) {
+  return escapePlayerHTML(value);
+}
 
 
 // ========================================
@@ -26,17 +44,6 @@ const modal = document.getElementById("player-modal");
 
 let currentPosition = "ALL";
 
-function escapePlayerHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  })[char]);
-}
-
-// 선수 목록 불러오기
 async function loadPlayers() {
   if (!playerGrid) return;
 
@@ -59,7 +66,6 @@ async function loadPlayers() {
   console.log("선수 데이터 로딩 완료", players);
 }
 
-// 선수 카드 출력
 function renderPlayers(position = "ALL") {
   if (!playerGrid) return;
 
@@ -87,39 +93,43 @@ function renderPlayers(position = "ALL") {
                style="width:100%;height:100%;object-fit:cover;"
                onerror="this.style.display='none'">`
           : `<strong>RISE</strong>
-             <span>${String(player.number).padStart(2, "0")}</span>`
+             <span>${String(player.number ?? 0).padStart(2, "0")}</span>`
         }
       </div>
+
       <div class="player-info">
         <small>${escapePlayerHTML(player.position)}</small>
+
         <h3>
-  <span style="color:#c9a646; margin-right:8px;">
-    #${String(player.number).padStart(2, "0")}
-  </span>
+          <span style="color:#c9a646;margin-right:8px;">
+            #${String(player.number ?? 0).padStart(2, "0")}
+          </span>
 
-  ${escapePlayerHTML(player.name)}
+          ${escapePlayerHTML(player.name)}
 
-  ${
-    player.is_captain
-    ? `<span style="
-        display:inline-block;
-        margin-left:8px;
-        padding:3px 7px;
-        background:#c9a646;
-        color:#080808;
-        font-size:11px;
-        font-weight:900;
-        border-radius:4px;
-        vertical-align:middle;
-      ">C</span>`
-    : ""
-  }
-</h3>
+          ${
+            player.is_captain
+            ? `<span style="
+                display:inline-block;
+                margin-left:8px;
+                padding:3px 7px;
+                background:#c9a646;
+                color:#080808;
+                font-size:11px;
+                font-weight:900;
+                border-radius:4px;
+                vertical-align:middle;
+              ">C</span>`
+            : ""
+          }
+        </h3>
+
         <p>GEOMDAN RISE FC</p>
       </div>
     </div>
   `).join("");
 }
+
 
 // 포지션 필터
 filterButtons.forEach(button => {
@@ -129,6 +139,7 @@ filterButtons.forEach(button => {
     renderPlayers(button.dataset.position);
   });
 });
+
 
 // 선수 상세 팝업
 if (playerGrid) {
@@ -143,16 +154,18 @@ if (playerGrid) {
     if (!player || !modal) return;
 
     document.getElementById("modal-number").textContent =
-      String(player.number).padStart(2, "0");
+      String(player.number ?? 0).padStart(2, "0");
 
     document.getElementById("modal-name").textContent = player.name;
     document.getElementById("modal-position").textContent = player.position;
+
     document.getElementById("modal-description").textContent =
       player.description || "선수 소개가 준비 중입니다.";
 
     modal.classList.add("show");
   });
 }
+
 
 // 팝업 닫기
 const modalClose = document.getElementById("modal-close");
@@ -173,7 +186,6 @@ document.addEventListener("keydown", event => {
   }
 });
 
-// 선수 데이터 최초 로딩
 loadPlayers();
 
 
@@ -217,8 +229,8 @@ async function startIntro() {
 
     try {
       await introVideo.play();
-    } catch (error) {
-      console.log("영상 재생 실패:", error);
+    } catch (playError) {
+      console.log("영상 재생 실패:", playError);
       finishIntro();
     }
   }
@@ -275,6 +287,7 @@ function setAuthMode(mode) {
 
     authName?.classList.add("hidden");
     if (authName) authName.required = false;
+
   } else {
     authTitle.textContent = "JOIN RISE FC";
     authSubmit.textContent = "회원가입";
@@ -308,6 +321,7 @@ authModal?.addEventListener("click", event => {
   if (event.target === authModal) authModal.classList.remove("show");
 });
 
+
 // 로그인 및 회원가입
 authForm?.addEventListener("submit", async event => {
   event.preventDefault();
@@ -334,6 +348,7 @@ authForm?.addEventListener("submit", async event => {
       authMessage.textContent = data.session
         ? "회원가입이 완료되었습니다!"
         : "회원가입 완료! 이메일 인증을 확인해 주세요.";
+
     } else {
       const { data, error } =
         await supabaseClient.auth.signInWithPassword({
@@ -353,9 +368,11 @@ authForm?.addEventListener("submit", async event => {
         setAuthMode("login");
       }, 1200);
     }
+
   } catch (error) {
     console.error("인증 오류:", error);
     authMessage.textContent = error.message;
+
   } finally {
     authSubmit.disabled = false;
   }
@@ -385,6 +402,8 @@ const joinButton = headerActions?.querySelector(".join-btn");
 if (headerActions && joinButton) {
   headerActions.insertBefore(headerAuthUser, joinButton);
   headerActions.insertBefore(headerLogoutBtn, joinButton);
+} else if (headerActions) {
+  headerActions.append(headerAuthUser, headerLogoutBtn);
 }
 
 function updateHeaderAuth(user) {
@@ -392,7 +411,7 @@ function updateHeaderAuth(user) {
 
   if (user) {
     const memberName =
-      user.user_metadata?.full_name || user.email.split("@")[0];
+      user.user_metadata?.full_name || user.email?.split("@")[0] || "회원";
 
     headerAuthUser.textContent = memberName + "님 환영합니다";
 
@@ -401,6 +420,7 @@ function updateHeaderAuth(user) {
 
     if (loginButton) loginButton.style.display = "none";
     if (signupButton) signupButton.style.display = "none";
+
   } else {
     headerAuthUser.style.display = "none";
     headerLogoutBtn.style.display = "none";
@@ -410,9 +430,14 @@ function updateHeaderAuth(user) {
   }
 }
 
+
 // 로그아웃
 headerLogoutBtn.addEventListener("click", async () => {
+  headerLogoutBtn.disabled = true;
+
   const { error } = await supabaseClient.auth.signOut();
+
+  headerLogoutBtn.disabled = false;
 
   if (error) {
     alert("로그아웃에 실패했습니다: " + error.message);
@@ -422,6 +447,7 @@ headerLogoutBtn.addEventListener("click", async () => {
   authModal?.classList.remove("show");
   alert("로그아웃되었습니다.");
 });
+
 
 // 로그인 상태 확인
 async function checkLoginStatus() {
@@ -441,10 +467,8 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
 
 checkLoginStatus();
 
-console.log("GEOMDAN RISE FC 전체 기능 연결 완료!");
+console.log("GEOMDAN RISE FC 인증 기능 연결 완료!");
 
-
-// ========================================
 
 // ========================================
 // MAIN PAGE - UPCOMING MATCHES
@@ -472,7 +496,6 @@ function getTodayDate() {
 
 // 경기 대진표 엠블럼 HTML
 function renderMainMatchup(match, compact = false) {
-
   const opponent = escapePlayerHTML(match.opponent || "상대팀 미정");
 
   const opponentLogo = match.opponent_logo_url
@@ -584,7 +607,6 @@ function renderMainMatchup(match, compact = false) {
 
 
 async function loadMainMatches() {
-
   if (!mainMatchList) return;
 
   mainMatchList.innerHTML = `
@@ -594,7 +616,6 @@ async function loadMainMatches() {
   `;
 
   try {
-
     const { data, error } = await supabaseClient
       .from("matches")
       .select("*")
@@ -606,7 +627,6 @@ async function loadMainMatches() {
 
     const upcomingMatches = (data || [])
       .filter(match => {
-
         const matchDate = String(match.match_date || "").slice(0, 10);
 
         return (
@@ -614,17 +634,13 @@ async function loadMainMatches() {
           matchDate >= today &&
           match.status !== "finished"
         );
-
       })
       .sort((a, b) =>
         String(a.match_date).localeCompare(String(b.match_date))
       )
       .slice(0, 3);
 
-
-    // 예정 경기 없음
     if (upcomingMatches.length === 0) {
-
       mainMatchList.innerHTML = `
         <div class="match-empty">
           등록된 경기 일정이 없습니다.
@@ -638,22 +654,14 @@ async function loadMainMatches() {
       return;
     }
 
-
-    // 대표 경기
     const nextMatch = upcomingMatches[0];
 
     if (mainMatchBox) {
-
       mainMatchBox.style.display = "flex";
-
       mainMatchBox.innerHTML = renderMainMatchup(nextMatch, false);
-
     }
 
-
-    // 경기 목록
     mainMatchList.innerHTML = upcomingMatches.map(match => `
-
       <article style="
         background:#151515;
         border:1px solid #333;
@@ -703,13 +711,11 @@ async function loadMainMatches() {
         </div>
 
       </article>
-
     `).join("");
 
     console.log("메인 경기 일정 로딩 완료:", upcomingMatches);
 
   } catch (error) {
-
     console.error("메인 경기 일정 오류:", error);
 
     mainMatchList.innerHTML = `
@@ -717,13 +723,9 @@ async function loadMainMatches() {
         경기 정보를 불러오지 못했습니다.
       </p>
     `;
-
   }
-
 }
 
-
-// 최초 경기 데이터 로딩
 loadMainMatches();
 
 
@@ -743,6 +745,9 @@ supabaseClient
   )
   .subscribe();
 
+
+// ========================================
+// NOTICE & GALLERY
 // ========================================
 
 const noticeList = document.getElementById("notice-list");
@@ -754,15 +759,45 @@ const galleryAdminTools = document.getElementById("gallery-admin-tools");
 let riseFcIsAdmin = false;
 
 
-// HTML 보안 처리
-function riseEscape(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  })[char]);
+// ========================================
+// RISE FC ADMIN PAGE BUTTON
+// 중복 선언 제거 - 이 부분은 한 번만 생성
+// ========================================
+
+const riseAdminPageButton = document.createElement("a");
+
+riseAdminPageButton.id = "rise-admin-page-button";
+riseAdminPageButton.href = "admin.html";
+riseAdminPageButton.textContent = "⚙ 관리자 페이지";
+
+riseAdminPageButton.style.cssText = `
+  display:none;
+  background:#c9a646;
+  color:#080808;
+  padding:11px 16px;
+  text-decoration:none;
+  font-weight:900;
+  font-size:13px;
+  border-radius:4px;
+  margin-right:8px;
+  align-items:center;
+  justify-content:center;
+`;
+
+const riseHeaderActions = document.querySelector(".header-actions");
+
+if (riseHeaderActions) {
+  const existingJoinButton =
+    riseHeaderActions.querySelector(".join-btn");
+
+  if (existingJoinButton) {
+    riseHeaderActions.insertBefore(
+      riseAdminPageButton,
+      existingJoinButton
+    );
+  } else {
+    riseHeaderActions.appendChild(riseAdminPageButton);
+  }
 }
 
 
@@ -771,7 +806,6 @@ function riseEscape(value) {
 // ========================================
 
 async function checkRiseFcAdmin() {
-
   riseFcIsAdmin = false;
 
   const { data: { user }, error } =
@@ -807,7 +841,6 @@ async function checkRiseFcAdmin() {
 // ========================================
 
 function updateRiseFcAdminUI() {
-
   if (noticeAdminTools) {
     noticeAdminTools.innerHTML = "";
   }
@@ -816,11 +849,16 @@ function updateRiseFcAdminUI() {
     galleryAdminTools.innerHTML = "";
   }
 
+  if (riseAdminPageButton) {
+    riseAdminPageButton.style.display =
+      riseFcIsAdmin ? "inline-flex" : "none";
+  }
+
   if (!riseFcIsAdmin) return;
+
 
   // 공지사항 글쓰기 버튼
   if (noticeAdminTools) {
-
     noticeAdminTools.innerHTML = `
       <button
         type="button"
@@ -874,6 +912,7 @@ function updateRiseFcAdminUI() {
     document.getElementById("notice-write-cancel")
       .addEventListener("click", () => {
         document.getElementById("notice-write-form").reset();
+
         document.getElementById("notice-write-form")
           .classList.remove("show");
       });
@@ -882,9 +921,9 @@ function updateRiseFcAdminUI() {
       .addEventListener("submit", createRiseNotice);
   }
 
+
   // 사진 추가 버튼
   if (galleryAdminTools) {
-
     galleryAdminTools.innerHTML = `
       <button
         type="button"
@@ -913,7 +952,6 @@ function updateRiseFcAdminUI() {
     });
 
     fileInput.addEventListener("change", async () => {
-
       if (fileInput.files.length > 0) {
         await uploadRiseGalleryPhotos(fileInput.files);
       }
@@ -929,7 +967,6 @@ function updateRiseFcAdminUI() {
 // ========================================
 
 async function loadRiseNotices() {
-
   if (!noticeList) return;
 
   noticeList.innerHTML = `
@@ -938,14 +975,12 @@ async function loadRiseNotices() {
     </div>
   `;
 
-  // 공지사항 테이블에서 조회
   const { data, error } = await supabaseClient
     .from("rise_fc_notices")
     .select("*")
     .order("created_at", { ascending: false });
 
   if (error) {
-
     console.error("공지사항 조회 오류:", error);
 
     noticeList.innerHTML = `
@@ -958,7 +993,6 @@ async function loadRiseNotices() {
   }
 
   if (!data || data.length === 0) {
-
     noticeList.innerHTML = `
       <div class="notice-empty">
         등록된 공지사항이 없습니다.
@@ -975,8 +1009,8 @@ async function loadRiseNotices() {
     <div class="notice-list">
 
       ${data.map(notice => {
-
         const createdAt = new Date(notice.created_at);
+
         const isNew =
           now - createdAt.getTime() < sevenDays &&
           now >= createdAt.getTime();
@@ -986,7 +1020,7 @@ async function loadRiseNotices() {
         return `
           <article
             class="notice-item"
-            data-notice-id="${notice.id}"
+            data-notice-id="${riseEscape(notice.id)}"
           >
 
             <div class="notice-item-main">
@@ -1016,7 +1050,7 @@ async function loadRiseNotices() {
                 <button
                   type="button"
                   class="notice-delete-btn"
-                  data-delete-notice="${notice.id}"
+                  data-delete-notice="${riseEscape(notice.id)}"
                 >
                   삭제
                 </button>
@@ -1025,7 +1059,6 @@ async function loadRiseNotices() {
 
           </article>
         `;
-
       }).join("")}
 
     </div>
@@ -1038,7 +1071,6 @@ async function loadRiseNotices() {
 // ========================================
 
 async function createRiseNotice(event) {
-
   event.preventDefault();
 
   if (!riseFcIsAdmin) {
@@ -1064,7 +1096,6 @@ async function createRiseNotice(event) {
   submitButton.textContent = "등록 중...";
 
   try {
-
     const { data: { user } } =
       await supabaseClient.auth.getUser();
 
@@ -1092,15 +1123,12 @@ async function createRiseNotice(event) {
     await loadRiseNotices();
 
   } catch (error) {
-
     console.error("공지사항 등록 오류:", error);
     alert("공지사항 등록 실패: " + error.message);
 
   } finally {
-
     submitButton.disabled = false;
     submitButton.textContent = "공지사항 등록";
-
   }
 }
 
@@ -1110,14 +1138,11 @@ async function createRiseNotice(event) {
 // ========================================
 
 if (noticeList) {
-
   noticeList.addEventListener("click", async event => {
-
     const deleteButton =
       event.target.closest("[data-delete-notice]");
 
     if (deleteButton) {
-
       if (!riseFcIsAdmin) {
         alert("관리자만 삭제할 수 있습니다.");
         return;
@@ -1142,7 +1167,6 @@ if (noticeList) {
       alert("공지사항이 삭제되었습니다.");
 
       await loadRiseNotices();
-
       return;
     }
 
@@ -1151,9 +1175,7 @@ if (noticeList) {
     if (item) {
       item.classList.toggle("open");
     }
-
   });
-
 }
 
 
@@ -1162,7 +1184,6 @@ if (noticeList) {
 // ========================================
 
 async function loadRiseGallery() {
-
   if (!galleryGrid) return;
 
   galleryGrid.innerHTML = `
@@ -1184,6 +1205,7 @@ async function loadRiseGallery() {
         사진을 불러오지 못했습니다.
       </div>
     `;
+
     return;
   }
 
@@ -1193,11 +1215,11 @@ async function loadRiseGallery() {
         등록된 사진이 없습니다.
       </div>
     `;
+
     return;
   }
 
   galleryGrid.innerHTML = data.map(photo => {
-
     const createdAt = new Date(photo.created_at);
 
     const photoDate = isNaN(createdAt.getTime())
@@ -1248,9 +1270,7 @@ async function loadRiseGallery() {
 
       </article>
     `;
-
   }).join("");
-
 }
 
 
@@ -1259,7 +1279,6 @@ async function loadRiseGallery() {
 // ========================================
 
 async function uploadRiseGalleryPhotos(files) {
-
   if (!riseFcIsAdmin) {
     alert("관리자만 사진을 업로드할 수 있습니다.");
     return;
@@ -1302,9 +1321,7 @@ async function uploadRiseGalleryPhotos(files) {
   const failedFiles = [];
 
   try {
-
     for (const file of validFiles) {
-
       const safeName = file.name.replace(
         /[^\w.-]/g,
         "_"
@@ -1314,8 +1331,6 @@ async function uploadRiseGalleryPhotos(files) {
         `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}_${safeName}`;
 
       try {
-
-        // 사진 파일 업로드
         const { error: uploadError } =
           await supabaseClient.storage
             .from("rise-fc-gallery")
@@ -1331,7 +1346,6 @@ async function uploadRiseGalleryPhotos(files) {
             .from("rise-fc-gallery")
             .getPublicUrl(storagePath);
 
-        // 갤러리 데이터 저장
         const { error: insertError } =
           await supabaseClient
             .from("rise_fc_gallery")
@@ -1343,7 +1357,6 @@ async function uploadRiseGalleryPhotos(files) {
             }]);
 
         if (insertError) {
-
           await supabaseClient.storage
             .from("rise-fc-gallery")
             .remove([storagePath]);
@@ -1354,56 +1367,42 @@ async function uploadRiseGalleryPhotos(files) {
         successCount++;
 
       } catch (error) {
-
         console.error("사진 업로드 오류:", file.name, error);
-
         failedFiles.push(file.name);
-
       }
-
     }
 
     await loadRiseGallery();
 
     if (failedFiles.length === 0) {
-
       alert(`${successCount}장의 사진이 등록되었습니다!`);
-
     } else {
-
       alert(
         `${successCount}장 등록 성공\n` +
         `${failedFiles.length}장 등록 실패\n\n` +
         failedFiles.join("\n")
       );
-
     }
 
   } finally {
-
     if (uploadButton) {
       uploadButton.disabled = false;
       uploadButton.textContent = "+";
     }
-
   }
-
 }
 
 
 // ========================================
-// 사진 삭제
+// 사진 삭제 및 크게 보기
 // ========================================
 
 if (galleryGrid) {
-
   galleryGrid.addEventListener("click", async event => {
-
     const deleteButton =
       event.target.closest("[data-delete-photo]");
 
     if (deleteButton) {
-
       if (!riseFcIsAdmin) {
         alert("관리자만 사진을 삭제할 수 있습니다.");
         return;
@@ -1451,26 +1450,22 @@ if (galleryGrid) {
       }
 
       await loadRiseGallery();
-
       return;
     }
 
-    // 사진 크게 보기
     const image = event.target.closest("[data-gallery-image]");
 
     if (image) {
-
       const viewer = document.getElementById("gallery-viewer");
       const viewerImage =
         document.getElementById("gallery-viewer-image");
 
+      if (!viewer || !viewerImage) return;
+
       viewerImage.src = image.dataset.galleryImage;
       viewer.classList.add("show");
-
     }
-
   });
-
 }
 
 
@@ -1485,58 +1480,39 @@ const galleryViewerClose =
   document.getElementById("gallery-viewer-close");
 
 galleryViewerClose?.addEventListener("click", () => {
-  galleryViewer.classList.remove("show");
+  galleryViewer?.classList.remove("show");
 });
 
 galleryViewer?.addEventListener("click", event => {
-
   if (event.target === galleryViewer) {
     galleryViewer.classList.remove("show");
   }
-
 });
 
 
 // ========================================
-// 최초 실행 및 로그인 상태 변경
+// NOTICE & GALLERY 최초 실행
 // ========================================
 
 async function initializeRiseNoticeGallery() {
-
   await checkRiseFcAdmin();
 
   await Promise.all([
     loadRiseNotices(),
     loadRiseGallery()
   ]);
-
 }
 
 initializeRiseNoticeGallery();
 
-supabaseClient.auth.onAuthStateChange(() => {
 
-  setTimeout(async () => {
+// ========================================
+// TOP BUTTON
+// ========================================
 
-    await checkRiseFcAdmin();
-
-    await Promise.all([
-      loadRiseNotices(),
-      loadRiseGallery()
-    ]);
-
-  }, 0);
-
-});
-
-console.log("RISE FC NOTICE & GALLERY 연결 완료!");
-
-
-// TOP 버튼
 const topButton = document.getElementById("topButton");
 
 if (topButton) {
-
   function checkTopButton() {
     if (window.scrollY > 300) {
       topButton.classList.add("show");
@@ -1574,7 +1550,6 @@ let riseHistoryItems = [];
 // ========================================
 
 function renderRiseHistoryAdminTools() {
-
   if (!historyAdminTools) return;
 
   historyAdminTools.innerHTML = "";
@@ -1720,7 +1695,6 @@ function renderRiseHistoryAdminTools() {
 // ========================================
 
 async function loadRiseHistory() {
-
   if (!historyList) return;
 
   historyList.innerHTML = `
@@ -1735,7 +1709,6 @@ async function loadRiseHistory() {
     .order("event_date", { ascending: false });
 
   if (error) {
-
     console.error("연혁 조회 오류:", error);
 
     historyList.innerHTML = `
@@ -1750,7 +1723,6 @@ async function loadRiseHistory() {
   riseHistoryItems = data || [];
 
   if (riseHistoryItems.length === 0) {
-
     historyList.innerHTML = `
       <div class="notice-empty">
         아직 등록된 구단 연혁이 없습니다.
@@ -1764,7 +1736,6 @@ async function loadRiseHistory() {
     <div class="rise-history-list">
 
       ${riseHistoryItems.map(item => {
-
         const date = String(item.event_date || "");
 
         const formattedDate = date
@@ -1814,7 +1785,7 @@ async function loadRiseHistory() {
 
                 <button
                   type="button"
-                  data-edit-history="${item.id}"
+                  data-edit-history="${riseEscape(item.id)}"
                   style="
                     padding:8px 15px;
                     background:#c9a646;
@@ -1828,7 +1799,7 @@ async function loadRiseHistory() {
 
                 <button
                   type="button"
-                  data-delete-history="${item.id}"
+                  data-delete-history="${riseEscape(item.id)}"
                   style="
                     padding:8px 15px;
                     background:#333;
@@ -1845,7 +1816,6 @@ async function loadRiseHistory() {
 
           </article>
         `;
-
       }).join("")}
 
     </div>
@@ -1858,7 +1828,6 @@ async function loadRiseHistory() {
 // ========================================
 
 async function createRiseHistory(event) {
-
   event.preventDefault();
 
   if (!riseFcIsAdmin) {
@@ -1887,7 +1856,6 @@ async function createRiseHistory(event) {
   submitButton.textContent = "등록 중...";
 
   try {
-
     const { data: { user } } =
       await supabaseClient.auth.getUser();
 
@@ -1916,16 +1884,12 @@ async function createRiseHistory(event) {
     await loadRiseHistory();
 
   } catch (error) {
-
     console.error("연혁 등록 오류:", error);
-
     alert("연혁 등록 실패: " + error.message);
 
   } finally {
-
     submitButton.disabled = false;
     submitButton.textContent = "연혁 등록";
-
   }
 }
 
@@ -1935,7 +1899,6 @@ async function createRiseHistory(event) {
 // ========================================
 
 if (historyList) {
-
   historyList.addEventListener("click", async event => {
 
     // 연혁 수정
@@ -1943,7 +1906,6 @@ if (historyList) {
       event.target.closest("[data-edit-history]");
 
     if (editButton) {
-
       if (!riseFcIsAdmin) {
         alert("관리자만 수정할 수 있습니다.");
         return;
@@ -2003,7 +1965,6 @@ if (historyList) {
       alert("연혁이 수정되었습니다.");
 
       await loadRiseHistory();
-
       return;
     }
 
@@ -2013,7 +1974,6 @@ if (historyList) {
       event.target.closest("[data-delete-history]");
 
     if (deleteButton) {
-
       if (!riseFcIsAdmin) {
         alert("관리자만 삭제할 수 있습니다.");
         return;
@@ -2038,11 +1998,8 @@ if (historyList) {
       alert("연혁이 삭제되었습니다.");
 
       await loadRiseHistory();
-
     }
-
   });
-
 }
 
 
@@ -2051,31 +2008,42 @@ if (historyList) {
 // ========================================
 
 async function initializeRiseHistory() {
-
   await checkRiseFcAdmin();
 
   renderRiseHistoryAdminTools();
 
   await loadRiseHistory();
-
 }
 
 initializeRiseHistory();
 
 
-// 로그인 / 로그아웃 시 관리자 버튼 갱신
+// ========================================
+// 로그인 / 로그아웃 시 관리자 UI 갱신
+// ========================================
+
 supabaseClient.auth.onAuthStateChange(() => {
-
   setTimeout(async () => {
-
     await checkRiseFcAdmin();
 
     renderRiseHistoryAdminTools();
 
-    await loadRiseHistory();
-
+    await Promise.all([
+      loadRiseNotices(),
+      loadRiseGallery(),
+      loadRiseHistory()
+    ]);
   }, 0);
-
 });
 
-console.log("RISE FC HISTORY MANAGEMENT 연결 완료!");
+
+// ========================================
+// FINAL
+// ========================================
+
+console.log("GEOMDAN RISE FC 전체 기능 연결 완료!");
+console.log("PLAYER MANAGEMENT 연결 완료!");
+console.log("MATCH MANAGEMENT 연결 완료!");
+console.log("AUTH MANAGEMENT 연결 완료!");
+console.log("NOTICE & GALLERY 연결 완료!");
+console.log("HISTORY MANAGEMENT 연결 완료!");
