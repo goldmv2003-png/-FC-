@@ -103,26 +103,21 @@
         padding-bottom: 52px;
       }
     }
-  </style>
+  
+.hero-slideshow .hero-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s;pointer-events:none;}
+.hero-slideshow .hero-slide.active{opacity:.38;}
+.hero-slide-controls{position:absolute;z-index:3;bottom:24px;right:8%;display:flex;align-items:center;gap:10px;}
+.hero-slide-controls button{width:34px;height:34px;border:1px solid #ffffff66;background:#1119;color:#fff;border-radius:50%;cursor:pointer;font-size:22px;}
+.hero-slide-dots{display:flex;gap:7px;align-items:center;} .hero-slide-dot{width:7px;height:7px;border-radius:50%;background:#ffffff55;border:0;padding:0;cursor:pointer;} .hero-slide-dot.active{background:#c9a646;width:20px;border-radius:8px;}
+.rise-player-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:28px 0;}
+.rise-stat-card{background:#171717;border:1px solid #333;border-radius:10px;padding:20px 22px;} .rise-stat-card>span{color:#c9a646;font-size:12px;font-weight:900;letter-spacing:2px;}
+.rise-stat-main{display:flex;align-items:center;gap:12px;margin:12px 0;} .rise-stat-main strong{font-size:42px;color:#c9a646;line-height:1;} .rise-stat-main b{font-size:18px;} .rise-stat-card p{font-size:12px;color:#888;}
+@media(max-width:600px){.rise-player-stats{grid-template-columns:1fr;gap:10px}.rise-stat-card{padding:16px}.rise-stat-main strong{font-size:34px}.hero-slide-controls{right:6%;bottom:18px}}
+
+</style>
 </head>
 
 <body>
-
-<!-- RISE FC INTRO -->
-<div id="intro-screen">
-
-    <video
-        id="intro-video"
-        autoplay
-        playsinline
-        preload="auto"
-    >
-        <source src="videos/intro.mp4" type="video/mp4">
-    </video>
-
-    <button id="skip-intro">SKIP INTRO ↗</button>
-
-</div>
 
 <!-- MAIN WEBSITE -->
 <div id="main-website">
@@ -172,11 +167,11 @@
     <!-- HERO -->
     <section class="hero">
 
-      <div class="hero-bg">
-        <img
-          src="images/라이즈FC 야간 경기.png"
-          alt="라이즈FC 야간 경기"
-        >
+      <div class="hero-bg hero-slideshow" id="rise-hero-slideshow">
+        <img class="hero-slide active" src="images/라이즈FC 야간 경기.png" alt="라이즈FC 경기 사진">
+        <img class="hero-slide" src="images/라이즈FC 선수단 단체사진.png" alt="라이즈FC 선수단 단체사진">
+        <img class="hero-slide" src="images/검단 라이즈FC 공식 유니폼.jpg" alt="라이즈FC 공식 유니폼">
+        <div class="hero-slide-controls"><button type="button" id="hero-prev" aria-label="이전 사진">‹</button><div class="hero-slide-dots" id="hero-slide-dots"></div><button type="button" id="hero-next" aria-label="다음 사진">›</button></div>
       </div>
 
       <div class="hero-content">
@@ -349,6 +344,11 @@
           등록된 경기 일정이 없습니다.
         </div>
 
+      </div>
+
+      <div class="rise-player-stats">
+        <article class="rise-stat-card"><span>TOP GOAL</span><div class="rise-stat-main"><strong>—</strong><b>득점 1위</b></div><p>선수 기록 업데이트 예정</p></article>
+        <article class="rise-stat-card"><span>TOP ASSIST</span><div class="rise-stat-main"><strong>—</strong><b>도움 1위</b></div><p>선수 기록 업데이트 예정</p></article>
       </div>
 
       <div class="match-more-wrap">
@@ -649,7 +649,12 @@
 
   <!-- JAVASCRIPT -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js"></script>
+  
+<script>
+(()=>{const slides=[...document.querySelectorAll('#rise-hero-slideshow .hero-slide')],wrap=document.getElementById('hero-slide-dots');if(!slides.length||!wrap)return;let current=0;const dots=slides.map((_,i)=>{const d=document.createElement('button');d.type='button';d.className='hero-slide-dot';d.setAttribute('aria-label',`사진 ${i+1}`);d.onclick=()=>show(i);wrap.appendChild(d);return d;});function show(i){current=(i+slides.length)%slides.length;slides.forEach((e,n)=>e.classList.toggle('active',n===current));dots.forEach((e,n)=>e.classList.toggle('active',n===current));}document.getElementById('hero-prev')?.addEventListener('click',()=>show(current-1));document.getElementById('hero-next')?.addEventListener('click',()=>show(current+1));show(0);setInterval(()=>show(current+1),6000);})();
+</script>
+
+<script src="script.js"></script>
 
 <script>
   const mobileToggle = document.getElementById("mobile-menu-toggle");

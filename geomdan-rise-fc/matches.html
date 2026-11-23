@@ -723,64 +723,6 @@ function showMatchQuarter(button, matchId, quarter) {
   }
 
 }
-  rows = rows
-    .filter(row => row.length)
-    .map(row => row.sort((a, b) => getNumber(a) - getNumber(b)));
-
-  return `
-    <div class="pitch-title">
-      STARTING XI · ${safe(match.formation || "FORMATION")}
-    </div>
-
-    <div class="pitch-direction">
-      ▲ ATTACK
-    </div>
-
-    <div class="tactics-pitch">
-
-      <div class="pitch-half-line"></div>
-      <div class="pitch-center-circle"></div>
-
-      ${rows.map(row => `
-
-        <div class="pitch-row">
-
-          ${row.map(slot => {
-
-            const player = findPlayer(slot.player_id);
-
-            return `
-              <div class="pitch-player">
-
-                <div class="pitch-player-number">
-                  ${player ? safe(player.number) : "?"}
-                </div>
-
-                <div class="pitch-player-name">
-                  ${player ? safe(player.name) : "선수 정보 없음"}
-                </div>
-
-                <div class="pitch-position-label">
-                  ${safe(slot.slot || slot.position)}
-                </div>
-
-              </div>
-            `;
-
-          }).join("")}
-
-        </div>
-
-      `).join("")}
-
-    </div>
-
-    <div class="pitch-footer">
-      GEOMDAN RISE FC · OFFICIAL STARTING XI
-    </div>
-  `;
-
-}
 
 
 /* =================================

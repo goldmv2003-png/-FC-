@@ -190,65 +190,8 @@ loadPlayers();
 
 
 // ========================================
-// RISE FC INTRO VIDEO
-// ========================================
+// Intro video disabled.
 
-const introScreen = document.getElementById("intro-screen");
-const introVideo = document.getElementById("intro-video");
-const mainWebsite = document.getElementById("main-website");
-const skipButton = document.getElementById("skip-intro");
-
-function finishIntro() {
-  if (!introScreen || introScreen.classList.contains("hide")) return;
-
-  introScreen.classList.add("hide");
-
-  if (mainWebsite) mainWebsite.classList.add("show");
-
-  setTimeout(() => {
-    introScreen.style.display = "none";
-  }, 800);
-
-  if (introVideo) introVideo.pause();
-}
-
-async function startIntro() {
-  if (!introVideo) {
-    finishIntro();
-    return;
-  }
-
-  try {
-    introVideo.muted = false;
-    introVideo.volume = 1;
-    await introVideo.play();
-  } catch (error) {
-    console.log("무음 재생 시도");
-
-    introVideo.muted = true;
-
-    try {
-      await introVideo.play();
-    } catch (playError) {
-      console.log("영상 재생 실패:", playError);
-      finishIntro();
-    }
-  }
-}
-
-if (skipButton) {
-  skipButton.addEventListener("click", finishIntro);
-}
-
-if (introVideo) {
-  introVideo.addEventListener("ended", finishIntro);
-  introVideo.addEventListener("error", finishIntro);
-}
-
-window.addEventListener("load", startIntro);
-
-
-// ========================================
 // RISE FC LOGIN & SIGNUP
 // ========================================
 
