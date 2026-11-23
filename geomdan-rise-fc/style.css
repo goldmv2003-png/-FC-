@@ -2777,3 +2777,12 @@ footer a { color: #c9a646 !important; }
   #contact .contact-links a { min-height: 70px !important; font-size: 12px !important; }
   footer { text-align: center !important; }
 }
+
+/* CONTRAST FIX: match cards on dark backgrounds */
+.match-data-card, .match-data-card * { color: #f7f7f7 !important; }
+.match-data-card h2 { color: #ffffff !important; }
+.match-data-card .match-meta { color: #e5e5e5 !important; }
+.match-data-card .match-badge { color: #111111 !important; background: #c9a646 !important; }
+.match-data-card .match-detail-toggle { color: #c9a646 !important; }
+.match-data-card .match-detail-content { color: #f1f1f1 !important; }
+.match-detail-content strong, .match-detail-content span, .match-detail-content p { color: #f1f1f1 !important; }
