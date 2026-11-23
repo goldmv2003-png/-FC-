@@ -114,6 +114,50 @@
 .rise-stat-main{display:flex;align-items:center;gap:12px;margin:12px 0;} .rise-stat-main strong{font-size:42px;color:#c9a646;line-height:1;} .rise-stat-main b{font-size:18px;} .rise-stat-card p{font-size:12px;color:#888;}
 @media(max-width:600px){.rise-player-stats{grid-template-columns:1fr;gap:10px}.rise-stat-card{padding:16px}.rise-stat-main strong{font-size:34px}.hero-slide-controls{right:6%;bottom:18px}}
 
+
+/* RISE FC LIGHT REDESIGN */
+body{background:#fff!important;color:#171717!important}
+.header{background:rgba(255,255,255,.96)!important;color:#111!important;border-bottom:1px solid #e6e6e6!important}
+.logo,.header nav a,.mobile-menu-panel a{color:#111!important}
+.logo span{color:#c9a646!important}
+.hero{background:#111!important;color:#fff!important}
+.hero-content{position:relative;z-index:2;pointer-events:none}
+.hero-content a,.hero-content button{pointer-events:auto}
+.hero-slideshow{position:absolute;z-index:1;isolation:isolate}
+.hero-slide-controls{z-index:100!important;pointer-events:auto!important}
+.hero-slide-controls button,.hero-slide-dots button{position:relative;z-index:101!important;pointer-events:auto!important}
+.hero-slide-controls{background:rgba(0,0,0,.28);padding:8px 10px;border-radius:30px}
+.hero-slide-controls button{width:42px;height:42px;touch-action:manipulation}
+.hero-slide-dots{pointer-events:auto!important}
+.section:not(.hero){background:#fff!important;color:#171717!important}
+.section-label{color:#b08b2e!important}
+.about,.history,.squad,.matches,.news,.gallery,.contact{background:#fff!important;color:#111!important}
+.match-box,.match-list,.match-item,.match-card{background:#f7f7f7!important;color:#111!important;border-color:#e5e5e5!important}
+.match-more-btn,.main-btn{background:#111!important;color:#fff!important;border:1px solid #c9a646!important}
+.rise-player-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.rise-stat-card{background:#fff!important;border:1px solid #e7e1d2!important;box-shadow:0 8px 24px #00000008!important;color:#111!important}
+.rise-stat-card>span{color:#b08b2e!important}
+.rise-stat-main strong{color:#b08b2e!important}
+.rise-stat-card p{color:#666!important}
+.contact-socials a{border-color:#d8d8d8!important;color:#111!important}
+footer{background:#111!important;color:#fff!important}
+@media(max-width:600px){.rise-player-stats{grid-template-columns:1fr!important}.hero-slide-controls{bottom:14px!important;right:5%!important}}
+
+
+/* HERO CONTRAST + SLIDER ARROW VISIBILITY FIX */
+.hero-content{z-index:20!important;pointer-events:none!important}
+.hero-content h1{color:#fff!important;text-shadow:0 3px 18px rgba(0,0,0,.8)!important}
+.hero-content h1 span{color:#c9a646!important;text-shadow:0 3px 18px rgba(0,0,0,.75)!important}
+.hero-desc{color:#fff!important;font-size:15px!important;font-weight:600!important;line-height:1.9!important;text-shadow:0 2px 8px rgba(0,0,0,.95)!important;opacity:1!important}
+.hero-content .main-btn{color:#fff!important;background:rgba(10,10,10,.9)!important;border:1px solid #c9a646!important;opacity:1!important;visibility:visible!important}
+.hero-number,.hero-label{color:#fff!important;text-shadow:0 2px 8px #000!important;opacity:.85!important}
+.hero-slide-controls{display:flex!important;align-items:center!important;gap:9px!important;bottom:24px!important;right:7%!important;padding:8px 10px!important;background:rgba(0,0,0,.75)!important;border:1px solid rgba(255,255,255,.28)!important;border-radius:32px!important;z-index:9999!important}
+.hero-slide-controls #hero-prev,.hero-slide-controls #hero-next{display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 40px!important;width:40px!important;height:40px!important;border:1px solid #c9a646!important;border-radius:50%!important;background:#111!important;color:#fff!important;font-size:30px!important;line-height:1!important;font-weight:700!important;opacity:1!important;visibility:visible!important;cursor:pointer!important;pointer-events:auto!important}
+.hero-slide-controls #hero-prev{order:0!important}.hero-slide-dots{order:1!important}.hero-slide-controls #hero-next{order:2!important}
+.hero-slide-dot{width:9px!important;height:9px!important;background:#ddd!important;opacity:1!important}.hero-slide-dot.active{width:20px!important;background:#c9a646!important}
+.hero-slide-controls button:focus-visible{outline:3px solid #fff!important;outline-offset:3px!important}
+@media(max-width:600px){.hero-desc{font-size:13px!important}.hero-slide-controls{right:4%!important;bottom:14px!important}.hero-slide-controls #hero-prev,.hero-slide-controls #hero-next{width:36px!important;height:36px!important;flex-basis:36px!important}}
+
 </style>
 </head>
 
@@ -689,5 +733,16 @@
 >
   TOP ↑
 </button>
+
+<script>
+(async function loadRiseScoringStats(){
+ const cards=document.querySelectorAll('.rise-stat-card'); if(cards.length!==2)return;
+ const client=window.supabase?.createClient('https://gqsecxgzegyzzwlmfavr.supabase.co','sb_publishable_8BKTlYkIEEwNS-dDauIfFg_3FSdkcDJ'); if(!client)return;
+ try{const {data,error}=await client.from('player_match_stats').select('player_id,stat_type,players(name)'); if(error)throw error; const totals={GOAL:{},ASSIST:{}}; (data||[]).forEach(r=>{const t=String(r.stat_type).toUpperCase();if(!totals[t])return;const name=r.players?.name||'선수';totals[t][name]=(totals[t][name]||0)+1;});
+ [['GOAL',cards[0],'득점'],['ASSIST',cards[1],'도움']].forEach(([type,card,label])=>{const entries=Object.entries(totals[type]).sort((a,b)=>b[1]-a[1]);if(!entries.length){card.querySelector('strong').textContent='—';card.querySelector('b').textContent=label+' 1위';card.querySelector('p').textContent='기록 등록 후 자동 반영';return;}const [name,count]=entries[0];card.querySelector('strong').textContent=count+'개';card.querySelector('b').textContent=label+' 1위';card.querySelector('p').textContent=name+(entries.length>1&&entries[1][1]===count?' · 공동 1위':'');});
+ }catch(e){console.info('선수 기록 테이블이 아직 설정되지 않았습니다.',e.message)}
+})();
+</script>
+
 </body>
 </html>

@@ -818,7 +818,7 @@ footer strong { color: white; }
 }
 
 #main-website {
-    display: none;
+    display: block;
 }
 
 #main-website.show {
@@ -2696,4 +2696,84 @@ footer strong { color: white; }
     align-items: stretch;
     width: 100%;
   }
+}
+
+/* Global light theme refresh */
+body{background:#fff;color:#151515}
+.header{background:#fff;color:#111;border-bottom:1px solid #e8e8e8}
+.logo,.header a{color:#111}
+.logo span{color:#c9a646}
+.section{background:#fff;color:#151515}
+.section-label{color:#a98932}
+.card,.notice-card,.history-item{background:#fff;color:#111;border:1px solid #e8e3d6}
+button, .main-btn,.join-btn{cursor:pointer}
+
+/* ===== LIGHT THEME VISIBILITY FIX (2026-11) ===== */
+:root {
+  --bg: #ffffff;
+  --purple: #C9A646; /* gold accent */
+  --white: #111111;
+  --gray: #555555;
+}
+body { background:#fff !important; color:#111 !important; }
+.header { background:rgba(255,255,255,.97) !important; border-bottom:1px solid #e6e6e6 !important; }
+nav a, .hero-desc, .hero-label, .squad-box a, .match-box span, .match-caption,
+.section > p:not(.section-label), footer, footer a { color:#333 !important; }
+.about, .matches, section, .section { background-color:#fff !important; color:#111 !important; }
+.squad-box, .match-box, .card, .player-card, .notice-card, .gallery-card {
+  background:#f7f7f7 !important; color:#111 !important; border-color:#e5e5e5 !important;
+}
+.hero { background:#f5f5f5 !important; color:#111 !important; }
+.hero h1, .section h2, .hero-content, .squad-box strong, .match-box strong { color:#111 !important; }
+.hero h1 span, .eyebrow, .section-label, .squad-box span, .match-box b { color:#b18a26 !important; }
+.hero::after, .hero-number { color:rgba(0,0,0,.04) !important; }
+.join-btn, .main-btn, button, .phone-btn { color:#111 !important; }
+.contact-socials a, .phone-btn { border-color:#c9a646 !important; }
+input, textarea, select { background:#fff !important; color:#111 !important; border-color:#ccc !important; }
+/* Keep explicitly dark overlays and modal shells readable */
+.modal, .modal-content, .player-modal, .login-modal, .admin-modal { background:#fff !important; color:#111 !important; }
+.modal *, .modal-content *, .player-modal *, .login-modal *, .admin-modal * { color:#111; }
+
+/* FIX: JOIN THE CLUB + FOOTER contrast and layout */
+#contact.contact {
+  background: #fff !important;
+  color: #111 !important;
+  padding: clamp(90px, 12vw, 170px) 8% !important;
+  min-height: 440px;
+}
+#contact .section-label { color: #9b7926 !important; }
+#contact h2 { color: #111 !important; }
+#contact p:not(.section-label) { color: #333 !important; font-size: 15px !important; line-height: 1.8; }
+#contact .contact-links {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+  max-width: 920px !important;
+  margin: 42px auto 0 !important;
+  overflow: visible !important;
+}
+#contact .contact-links a {
+  min-height: 76px !important;
+  padding: 16px 12px !important;
+  border: 1px solid #e7e1d2 !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #111 !important;
+  box-shadow: 0 5px 18px rgba(0,0,0,.04) !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  font-size: 13px !important;
+  text-align: center !important;
+}
+#contact .contact-links a span { color: #111 !important; display: block !important; }
+#contact .contact-links a:hover { border-color: #c9a646 !important; background: #fffdf7 !important; opacity: 1 !important; transform: translateY(-3px) !important; }
+#contact .contact-links svg { width: 25px !important; height: 25px !important; }
+footer { background: #111 !important; color: #f5f5f5 !important; border-top: 1px solid #c9a646 !important; }
+footer *, footer strong { color: #f5f5f5 !important; }
+footer a { color: #c9a646 !important; }
+@media (max-width: 700px) {
+  #contact.contact { padding: 75px 6% !important; }
+  #contact .contact-links { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 10px !important; margin-top: 28px !important; }
+  #contact .contact-links a { min-height: 70px !important; font-size: 12px !important; }
+  footer { text-align: center !important; }
 }
