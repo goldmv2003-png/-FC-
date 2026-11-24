@@ -71,25 +71,13 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <h2 id="form-title">경기 일정 등록</h2>
   <div class="form-grid">
     <div>
-  <label>상대 팀</label>
-
-  <input id="opponent" placeholder="예: FC UNITED">
-
-  <div class="actions" style="margin-top:5px">
-    <button
-      type="button"
-      class="gold"
-      id="generate-opponent-logo"
-    >
-      ⚽ AI 상대팀 엠블럼 생성
-    </button>
-  </div>
-
-  <div
-    id="opponent-logo-preview"
-    class="opponent-logo-preview"
-  ></div>
-</div>
+      <label>상대 팀</label>
+      <input id="opponent" placeholder="예: FC UNITED">
+      <label for="opponent-logo-file" style="margin-top:14px">상대팀 엠블럼 이미지 (선택)</label>
+      <input id="opponent-logo-file" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%;padding:10px;background:#111;border:1px solid #444;border-radius:8px;color:#ddd">
+      <small style="display:block;color:#999;margin-top:7px">PNG / JPG / WEBP · 최대 5MB · 등록하지 않으면 기본 엠블럼 표시</small>
+      <div id="opponent-logo-preview" class="opponent-logo-preview"></div>
+    </div>
     <div>
       <label>경기 날짜</label>
       <input type="date" id="match-date">
@@ -214,157 +202,67 @@ let editingId = null;
 let editingMatch = null;
 let generatedOpponentLogoUrl = "";
 let generatedOpponentName = "";
+let opponentLogoFile = null;
 
 function renderOpponentLogoPreview() {
   const preview = $("opponent-logo-preview");
-
   if (!preview) return;
+  const src = generatedOpponentLogoUrl || "images/default-opponent-logo.svg";
+  preview.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+      <img src="${safe(src)}" alt="상대팀 엠블럼 미리보기"
+        style="width:76px;height:76px;object-fit:contain;background:#111;border:1px solid #444;border-radius:12px;padding:7px"
+        onerror="this.onerror=null;this.src='images/default-opponent-logo.svg'">
+      <p style="color:#c9a646;font-size:13px;line-height:1.6">
+        ${generatedOpponentLogoUrl ? "엠블럼 등록 준비 완료<br>경기 저장 시 함께 저장됩니다." : "기본 엠블럼이 표시됩니다."}
+      </p>
+    </div>`;
+}
+renderOpponentLogoPreview();
 
-  if (!generatedOpponentLogoUrl) {
-    preview.innerHTML = "";
+// 관리자 직접 업로드: Supabase Storage의 opponent-logos 버킷 사용
+$("opponent-logo-file").addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!file.type.match(/^image\/(png|jpeg|webp)$/)) {
+    alert("PNG, JPG 또는 WEBP 이미지 파일만 업로드할 수 있습니다.");
+    event.target.value = "";
     return;
   }
+  if (file.size > 5 * 1024 * 1024) {
+    alert("이미지는 5MB 이하로 업로드해 주세요.");
+    event.target.value = "";
+    return;
+  }
+  opponentLogoFile = file;
+  generatedOpponentLogoUrl = URL.createObjectURL(file);
+  generatedOpponentName = $("opponent").value.trim();
+  renderOpponentLogoPreview();
+  $("message").textContent = "이미지 선택 완료. 경기 저장 시 업로드됩니다.";
+});
 
-  preview.innerHTML = `
-    <img
-      src="${safe(generatedOpponentLogoUrl)}"
-      alt="상대팀 엠블럼"
-    >
-    <p>
-      상대팀 엠블럼 준비 완료<br>
-      경기 저장 시 자동으로 등록됩니다.
-    </p>
-  `;
+async function uploadOpponentLogoIfNeeded() {
+  if (!opponentLogoFile) return generatedOpponentLogoUrl || null;
+  const ext = opponentLogoFile.name.split(".").pop().toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+  // 영문/숫자 기반 파일명으로 생성해 한글 경로의 Invalid key 오류 방지
+  const filePath = `opponent-${Date.now()}-${crypto.randomUUID()}.${ext}`;
+  const { data, error } = await db.storage.from("opponent-logos").upload(filePath, opponentLogoFile, {
+    cacheControl: "31536000", upsert: false, contentType: opponentLogoFile.type
+  });
+  if (error) throw new Error("엠블럼 업로드 실패: " + error.message + " (Supabase에 opponent-logos 버킷이 생성되어 있는지 확인하세요.)");
+  const { data: publicData } = db.storage.from("opponent-logos").getPublicUrl(data.path);
+  opponentLogoFile = null;
+  return publicData.publicUrl;
 }
 
-// ========================================
-// AI 상대팀 엠블럼 생성
-// ========================================
-
-$("generate-opponent-logo").onclick = async () => {
-
-  const opponent = $("opponent").value.trim();
-
-  if (!opponent) {
-    alert("먼저 상대팀 이름을 입력하세요.");
-    $("opponent").focus();
-    return;
-  }
-
-  const button = $("generate-opponent-logo");
-
-  button.disabled = true;
-  button.textContent = "엠블럼 생성 중...";
-
-  try {
-
-    // 1. 관리자 로그인 세션 확인
-    const { data: sessionData, error: sessionError } =
-      await db.auth.getSession();
-
-    if (sessionError) throw sessionError;
-
-    const session = sessionData.session;
-
-    if (!session?.access_token) {
-      throw new Error("관리자 로그인이 필요합니다.");
-    }
-
-    // 2. 기존 상대팀 엠블럼 확인
-    const { data: existing, error: searchError } = await db
-      .from("matches")
-      .select("opponent_logo_url")
-      .eq("opponent", opponent)
-      .not("opponent_logo_url", "is", null)
-      .limit(1);
-
-    if (searchError) throw searchError;
-
-    if (existing?.length && existing[0].opponent_logo_url) {
-
-      generatedOpponentLogoUrl =
-        existing[0].opponent_logo_url;
-
-      generatedOpponentName = opponent;
-
-      renderOpponentLogoPreview();
-
-      $("message").textContent =
-        "기존 상대팀 엠블럼을 불러왔습니다.";
-
-      return;
-    }
-
-    // 3. Supabase Edge Function 호출
-    $("message").textContent =
-      "AI가 상대팀 엠블럼을 제작하고 있습니다.";
-
-    const { data, error } = await db.functions.invoke(
-      "generate-opponent-logo",
-      {
-        body: {
-          opponent: opponent
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      }
-    );
-
-    if (error) {
-      throw new Error(
-        error.message || "Edge Function 호출에 실패했습니다."
-      );
-    }
-
-    // 4. 생성 결과 확인
-    if (!data?.success || !data?.logo_url) {
-      throw new Error(
-        data?.error || "엠블럼 생성에 실패했습니다."
-      );
-    }
-
-    // 5. 생성된 엠블럼 저장
-    generatedOpponentLogoUrl = data.logo_url;
-    generatedOpponentName = opponent;
-
-    // 6. 미리보기 출력
-    renderOpponentLogoPreview();
-
-    $("message").textContent =
-      opponent + " 엠블럼 생성 완료! 경기 저장 시 자동 등록됩니다.";
-
-  } catch (error) {
-
-    console.error("AI 엠블럼 생성 오류:", error);
-
-    $("message").textContent =
-      "엠블럼 생성 실패: " + error.message;
-
-    alert("엠블럼 생성 실패:\n" + error.message);
-
-  } finally {
-
-    button.disabled = false;
-    button.textContent = "⚽ AI 상대팀 엠블럼 생성";
-
-  }
-
-};
-
-
-// 상대팀 이름 변경 시 기존 엠블럼 초기화
 $("opponent").addEventListener("input", () => {
-
   if ($("opponent").value.trim() !== generatedOpponentName) {
-
     generatedOpponentLogoUrl = "";
+    opponentLogoFile = null;
+    $("opponent-logo-file").value = "";
     generatedOpponentName = "";
-
     renderOpponentLogoPreview();
-
   }
-
 });
 
 function safe(value){
@@ -746,13 +644,19 @@ async function saveMatch(publish){
     .map(q=>`Q${q} ${quarterFormations[q]}`)
     .join(" / ");
 
+  let savedOpponentLogoUrl = null;
+  try {
+    if (generatedOpponentName === $("opponent").value.trim()) {
+      savedOpponentLogoUrl = await uploadOpponentLogoIfNeeded();
+    }
+  } catch (uploadError) {
+    alert(uploadError.message);
+    return false;
+  }
+
   const payload={
     opponent:$("opponent").value.trim(),
-
-    opponent_logo_url:
-      generatedOpponentName === $("opponent").value.trim()
-        ? generatedOpponentLogoUrl
-        : null,
+    opponent_logo_url: savedOpponentLogoUrl,
 
     match_date:$("match-date").value,
     match_time:$("match-time").value||null,
@@ -934,11 +838,10 @@ async function editMatch(id){
   $("form-title").textContent="경기 정보 수정";
   $("opponent").value=data.opponent||"";
   generatedOpponentLogoUrl = data.opponent_logo_url || "";
-generatedOpponentName = generatedOpponentLogoUrl
-  ? (data.opponent || "")
-  : "";
-
-renderOpponentLogoPreview();
+  generatedOpponentName = generatedOpponentLogoUrl ? (data.opponent || "") : "";
+  opponentLogoFile = null;
+  $("opponent-logo-file").value = "";
+  renderOpponentLogoPreview();
   $("match-date").value=data.match_date||"";
   $("match-time").value=data.match_time||"";
   $("venue").value=data.venue||"";

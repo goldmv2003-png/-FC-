@@ -446,6 +446,7 @@ function renderMainMatchup(match, compact = false) {
       <img
         src="${escapePlayerHTML(match.opponent_logo_url)}"
         alt="${opponent} 엠블럼"
+        onerror="this.onerror=null;this.src='images/default-opponent-logo.svg'"
         style="
           width:${compact ? "55px" : "75px"};
           height:${compact ? "55px" : "75px"};
@@ -454,18 +455,8 @@ function renderMainMatchup(match, compact = false) {
       >
     `
     : `
-      <div style="
-        width:${compact ? "55px" : "75px"};
-        height:${compact ? "55px" : "75px"};
-        border:1px solid #555;
-        border-radius:50%;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        color:#c9a646;
-        font-size:12px;
-        font-weight:bold;
-      ">FC</div>
+      <img src="images/default-opponent-logo.svg" alt="기본 상대팀 엠블럼"
+        style="width:${compact ? "55px" : "75px"};height:${compact ? "55px" : "75px"};object-fit:contain">
     `;
 
   const logoSize = compact ? "55px" : "75px";

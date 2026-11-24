@@ -1,33 +1,281 @@
-<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RISE FC 득점·도움 기록</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>*{box-sizing:border-box}body{font-family:Arial,'Malgun Gothic',sans-serif;background:#f6f6f6;color:#161616;margin:0;padding:24px}main{max-width:760px;margin:auto;background:white;border:1px solid #e5e5e5;border-radius:16px;padding:24px}h1{margin-top:0}label{display:block;margin:14px 0 6px;font-weight:bold}select,button{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;background:white;font-size:16px}button{background:#111;color:white;margin-top:12px;cursor:pointer}button.gold{background:#c9a646;color:#111}#status{margin-top:14px;white-space:pre-wrap}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:600px){body{padding:12px}main{padding:16px}.row{grid-template-columns:1fr}}</style></head><body><main><h1>득점 · 도움 기록 입력</h1><p>경기 종료 후 득점과 도움을 각각 기록하세요. 여러 골이면 기록을 반복 입력하면 됩니다.</p><label>경기 선택</label><select id="match"></select><label>선수 선택</label><select id="player"></select><div class="row"><div><label>기록 종류</label><select id="type"><option value="GOAL">득점 (GOAL)</option><option value="ASSIST">도움 (ASSIST)</option></select></div><div><label>득점 시간 (선택)</label><select id="minute"><option value="">미입력</option><option>10</option><option>20</option><option>30</option><option>40</option><option>50</option><option>60</option><option>70</option><option>80</option><option>90</option></select></div></div><button id="save">기록 저장</button><button class="gold" onclick="location.href='admin.html'">관리자 홈으로</button><div id="status"></div></main><script>const URL='https://gqsecxgzegyzzwlmfavr.supabase.co',KEY='sb_publishable_8BKTlYkIEEwNS-dDauIfFg_3FSdkcDJ',db=supabase.createClient(URL,KEY);async function admin(){const {data:{user}}=await db.auth.getUser();if(!user){location.href='index.html';return false}const {data,error}=await db.from('rise_fc_admins').select('user_id').eq('user_id',user.id).maybeSingle();if(error||!data){alert('관리자만 이용할 수 있습니다.');location.href='index.html';return false}return true}async function init(){
- if(!await admin()) return;
- const status=document.getElementById('status');
- const matchSelect=document.getElementById('match');
- const playerSelect=document.getElementById('player');
- matchSelect.innerHTML='<option value="">경기를 불러오는 중...</option>';
- playerSelect.innerHTML='<option value="">선수를 불러오는 중...</option>';
- const [m,p]=await Promise.all([
-   db.from('matches').select('*').order('match_date',{ascending:false}),
-   db.from('players').select('*').order('number',{ascending:true})
- ]);
- if(m.error||p.error){
-   status.textContent='목록 조회 실패\n'+(m.error?'경기: '+m.error.message+'\n':'')+(p.error?'선수: '+p.error.message:'');
-   matchSelect.innerHTML='<option value="">경기 조회 실패</option>';
-   playerSelect.innerHTML='<option value="">선수 조회 실패</option>';
-   return;
- }
- const matches=m.data||[], players=p.data||[];
- matchSelect.innerHTML='<option value="">경기를 선택하세요</option>'+matches.map(x=>{
-   const date=x.match_date||x.date||'날짜 미정';
-   const opponent=x.opponent||x.team||x.title||'상대팀';
-   return `<option value="${x.id}">${date} · ${opponent}</option>`;
- }).join('');
- playerSelect.innerHTML='<option value="">선수를 선택하세요</option>'+players.map(x=>{
-   const name=x.name||x.player_name||x.full_name||'이름 미등록';
-   const number=x.number??x.jersey_number??'';
-   return `<option value="${x.id}">${number!==''?number+'번 ':''}${name}</option>`;
- }).join('');
- if(!matches.length) matchSelect.innerHTML='<option value="">등록된 경기가 없습니다</option>';
- if(!players.length) playerSelect.innerHTML='<option value="">등록된 선수가 없습니다</option>';
- status.textContent=`경기 ${matches.length}개 · 선수 ${players.length}명 불러왔습니다.`;
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RISE FC 득점·도움 기록</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,'Malgun Gothic',sans-serif;background:#f6f6f6;color:#161616;margin:0;padding:24px}
+main{max-width:760px;margin:auto;background:#fff;border:1px solid #e5e5e5;border-radius:16px;padding:24px}
+h1{margin:0 0 12px;font-size:32px}
+p{line-height:1.6}
+label{display:block;margin:14px 0 6px;font-weight:bold}
+select,button{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:16px;min-height:46px}
+button{background:#111;color:#fff;margin-top:12px;cursor:pointer}
+button.gold{background:#c9a646;color:#111}
+button:disabled{opacity:.55;cursor:not-allowed}
+#records{margin-top:28px;border-top:1px solid #e5e5e5;padding-top:20px}#records h2{font-size:22px;margin:0 0 8px}.record-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid #eee}.record-info{line-height:1.55}.record-info small{display:block;color:#777}.delete-record{width:auto;min-width:82px;margin:0;padding:9px 12px;background:#b42318;color:#fff;font-size:14px;min-height:40px}.empty-records{padding:18px 0;color:#777}
+#status{margin:14px 0;padding:12px;border-radius:8px;background:#f3f3f3;white-space:pre-wrap;line-height:1.5;font-size:14px}
+#status.error{background:#fff0f0;color:#a40000}
+#status.success{background:#effaf1;color:#17652b}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){body{padding:12px}main{padding:16px}h1{font-size:27px}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<h1>득점 · 도움 기록 입력</h1>
+<p>경기 종료 후 득점과 도움을 각각 기록하세요. 여러 골이면 기록을 반복 입력하면 됩니다.</p>
+<div id="status">페이지 초기화 중...</div>
+
+<label for="match">경기 선택</label>
+<select id="match" disabled><option value="">경기 목록을 불러오는 중...</option></select>
+
+<label for="player">선수 선택</label>
+<select id="player" disabled><option value="">선수 목록을 불러오는 중...</option></select>
+
+<div class="row">
+  <div>
+    <label for="type">기록 종류</label>
+    <select id="type">
+      <option value="GOAL">득점 (GOAL)</option>
+      <option value="ASSIST">도움 (ASSIST)</option>
+    </select>
+  </div>
+  <div>
+    <label for="minute">득점 시간 (선택)</label>
+    <select id="minute">
+      <option value="">미입력</option>
+      <option value="10">10분</option><option value="20">20분</option>
+      <option value="30">30분</option><option value="40">40분</option>
+      <option value="50">50분</option><option value="60">60분</option>
+      <option value="70">70분</option><option value="80">80분</option>
+      <option value="90">90분</option>
+    </select>
+  </div>
+</div>
+<button id="save" disabled>기록 저장</button>
+
+<section id="records">
+  <h2>저장된 득점 · 도움 기록 관리</h2>
+  <p>테스트 기록을 포함해 저장된 기록을 확인하고, 잘못 입력한 기록을 삭제할 수 있습니다.</p>
+  <div id="record-list">기록을 불러오는 중...</div>
+</section>
+<button class="gold" onclick="location.href='admin.html'">관리자 홈으로</button>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://gqsecxgzegyzzwlmfavr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_8BKTlYkIEEwNS-dDauIfFg_3FSdkcDJ';
+const statusBox = document.getElementById('status');
+const matchSelect = document.getElementById('match');
+const playerSelect = document.getElementById('player');
+const saveButton = document.getElementById('save');
+const recordList = document.getElementById('record-list');
+let db;
+let matchRows = [];
+let playerRows = [];
+
+function setStatus(message, type='') {
+  statusBox.textContent = message;
+  statusBox.className = type;
 }
-document.getElementById('save').onclick=async()=>{const status=document.getElementById('status');const match_id=document.getElementById('match').value,player_id=document.getElementById('player').value,stat_type=document.getElementById('type').value,minute=document.getElementById('minute').value;if(!match_id||!player_id){status.textContent='경기와 선수를 선택하세요.';return}const {error}=await db.from('player_match_stats').insert({match_id,player_id,stat_type,minute:minute?Number(minute):null});status.textContent=error?'저장 실패: '+error.message:'기록 저장 완료!';};init();</script></body></html>
+function optionLabel(row, keys, fallback) {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== '') return String(value);
+  }
+  return fallback;
+}
+function sortPlayers(rows) {
+  return [...rows].sort((a,b) => {
+    const an = Number(a.number ?? a.jersey_number ?? 9999);
+    const bn = Number(b.number ?? b.jersey_number ?? 9999);
+    if (an !== bn) return an - bn;
+    return String(a.name ?? a.player_name ?? '').localeCompare(String(b.name ?? b.player_name ?? ''), 'ko');
+  });
+}
+
+async function init() {
+  try {
+    if (!window.supabase?.createClient) {
+      throw new Error('Supabase 라이브러리를 불러오지 못했습니다. 인터넷 연결 또는 CDN 차단 여부를 확인하세요.');
+    }
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    setStatus('관리자 로그인 확인 중...');
+    const { data: authData, error: authError } = await db.auth.getUser();
+    if (authError) throw new Error('로그인 확인 실패: ' + authError.message);
+    if (!authData?.user) {
+      setStatus('로그인이 필요합니다. 홈페이지에서 관리자 계정으로 로그인한 뒤 다시 접속하세요.', 'error');
+      return;
+    }
+
+    setStatus('관리자 권한 확인 중...');
+    const { data: adminData, error: adminError } = await db
+      .from('rise_fc_admins').select('user_id').eq('user_id', authData.user.id).maybeSingle();
+    if (adminError) throw new Error('관리자 권한 조회 실패: ' + adminError.message);
+    if (!adminData) {
+      setStatus('현재 계정은 관리자 명단(rise_fc_admins)에 등록되어 있지 않습니다.', 'error');
+      return;
+    }
+
+    setStatus('경기와 선수 목록을 불러오는 중...');
+    // 컬럼 존재 여부에 따른 조회 실패를 피하기 위해 order() 없이 가져온 뒤 브라우저에서 정렬합니다.
+    const [matchesResult, playersResult] = await Promise.all([
+      db.from('matches').select('*'),
+      db.from('players').select('*')
+    ]);
+
+    if (matchesResult.error || playersResult.error) {
+      const details = [
+        matchesResult.error ? '경기 목록 오류: ' + matchesResult.error.message : '',
+        playersResult.error ? '선수 목록 오류: ' + playersResult.error.message : ''
+      ].filter(Boolean).join('\n');
+      throw new Error(details);
+    }
+
+    const matches = matchesResult.data || [];
+    const players = sortPlayers(playersResult.data || []);
+    matchRows = matches;
+    playerRows = players;
+
+    matches.sort((a,b) => String(b.match_date ?? b.date ?? '').localeCompare(String(a.match_date ?? a.date ?? '')));
+
+    matchSelect.innerHTML = '<option value="">경기를 선택하세요</option>';
+    for (const match of matches) {
+      const date = optionLabel(match, ['match_date','date'], '날짜 미정');
+      const opponent = optionLabel(match, ['opponent','team','title'], '상대팀');
+      const time = optionLabel(match, ['match_time'], '');
+      const opt = document.createElement('option');
+      opt.value = match.id;
+      opt.textContent = `${date}${time ? ' ' + time.slice(0,5) : ''} · ${opponent}`;
+      matchSelect.appendChild(opt);
+    }
+
+    playerSelect.innerHTML = '<option value="">선수를 선택하세요</option>';
+    for (const player of players) {
+      const name = optionLabel(player, ['name','player_name','full_name'], '이름 미등록');
+      const number = player.number ?? player.jersey_number ?? '';
+      const opt = document.createElement('option');
+      opt.value = player.id;
+      opt.textContent = `${number !== '' ? number + '번 ' : ''}${name}`;
+      playerSelect.appendChild(opt);
+    }
+
+    if (!matches.length) matchSelect.innerHTML = '<option value="">등록된 경기가 없습니다</option>';
+    if (!players.length) playerSelect.innerHTML = '<option value="">등록된 선수가 없습니다</option>';
+
+    matchSelect.disabled = !matches.length;
+    playerSelect.disabled = !players.length;
+    saveButton.disabled = !(matches.length && players.length);
+
+    await loadRecords();
+    setStatus(`목록 불러오기 완료\n경기 ${matches.length}개 · 선수 ${players.length}명\n경기와 선수를 선택한 뒤 득점 또는 도움을 저장하세요.`, 'success');
+  } catch (error) {
+    console.error('[RISE FC 기록 입력]', error);
+    recordList.textContent = '기록 목록을 불러오지 못했습니다.';
+    setStatus('목록을 불러오지 못했습니다.\n' + (error?.message || String(error)) +
+      '\n\n이 메시지를 그대로 보내주시면 원인을 확인할 수 있습니다.', 'error');
+    matchSelect.innerHTML = '<option value="">경기 목록 조회 실패</option>';
+    playerSelect.innerHTML = '<option value="">선수 목록 조회 실패</option>';
+    matchSelect.disabled = true;
+    playerSelect.disabled = true;
+    saveButton.disabled = true;
+  }
+}
+
+async function loadRecords() {
+  recordList.textContent = '기록을 불러오는 중...';
+  const { data, error } = await db
+    .from('player_match_stats')
+    .select('id, match_id, player_id, stat_type, minute, created_at')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error('저장된 기록 조회 실패: ' + error.message);
+
+  if (!data?.length) {
+    recordList.innerHTML = '<div class="empty-records">저장된 득점·도움 기록이 없습니다.</div>';
+    return;
+  }
+
+  recordList.innerHTML = '';
+  for (const record of data) {
+    const match = matchRows.find(row => String(row.id) === String(record.match_id));
+    const player = playerRows.find(row => String(row.id) === String(record.player_id));
+    const matchDate = optionLabel(match, ['match_date', 'date'], '날짜 미정');
+    const opponent = optionLabel(match, ['opponent', 'team', 'title'], '상대팀 정보 없음');
+    const playerName = optionLabel(player, ['name', 'player_name', 'full_name'], '선수 정보 없음');
+    const number = player?.number ?? player?.jersey_number;
+    const kind = record.stat_type === 'GOAL' ? '득점' : '도움';
+    const item = document.createElement('div');
+    item.className = 'record-item';
+    const info = document.createElement('div');
+    info.className = 'record-info';
+    const strong = document.createElement('strong');
+    strong.textContent = `${kind} · ${number !== undefined && number !== null ? number + '번 ' : ''}${playerName}`;
+    const detail = document.createElement('small');
+    detail.textContent = `${matchDate} · ${opponent}${record.minute !== null ? ' · ' + record.minute + '분' : ''}`;
+    info.append(strong, detail);
+    const button = document.createElement('button');
+    button.className = 'delete-record';
+    button.type = 'button';
+    button.textContent = '기록 삭제';
+    button.addEventListener('click', () => deleteRecord(record, button));
+    item.append(info, button);
+    recordList.appendChild(item);
+  }
+}
+
+async function deleteRecord(record, button) {
+  const kind = record.stat_type === 'GOAL' ? '득점' : '도움';
+  if (!confirm(`이 ${kind} 기록을 삭제할까요?\n삭제한 기록은 복구할 수 없습니다.`)) return;
+  button.disabled = true;
+  button.textContent = '삭제 중...';
+  try {
+    const { error } = await db
+      .from('player_match_stats')
+      .delete()
+      .eq('id', record.id);
+    if (error) throw error;
+    await loadRecords();
+    setStatus(`${kind} 기록을 삭제했습니다.`, 'success');
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = '기록 삭제';
+    setStatus('기록 삭제 실패: ' + (error?.message || String(error)), 'error');
+  }
+}
+
+saveButton.addEventListener('click', async () => {
+  try {
+    const match_id = matchSelect.value;
+    const player_id = playerSelect.value;
+    const stat_type = document.getElementById('type').value;
+    const minuteValue = document.getElementById('minute').value;
+    if (!match_id || !player_id) {
+      setStatus('경기와 선수를 모두 선택하세요.', 'error');
+      return;
+    }
+    saveButton.disabled = true;
+    setStatus('기록 저장 중...');
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { error } = await db.from('player_match_stats').insert({
+      match_id, player_id, stat_type,
+      minute: minuteValue ? Number(minuteValue) : null
+    });
+    if (error) throw error;
+    await loadRecords();
+    setStatus((stat_type === 'GOAL' ? '득점' : '도움') + ' 기록을 저장했습니다.', 'success');
+  } catch (error) {
+    setStatus('저장 실패: ' + (error?.message || String(error)), 'error');
+  } finally {
+    saveButton.disabled = !(matchSelect.value && playerSelect.value);
+  }
+});
+
+init();
+</script>
+</body>
+</html>
